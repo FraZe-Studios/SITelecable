@@ -1,0 +1,705 @@
+/**
+ * Estilos para la vista completa de configuración de sede
+ */
+
+/* Vista completa de configuración de sede */
+.sede-config-full-view {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary);
+}
+
+/* Navegador de sede */
+.sede-breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 0.6rem 1.5rem;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.sede-breadcrumb-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.sede-breadcrumb-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: all 0.2s;
+}
+
+.sede-breadcrumb-back:hover {
+    background: var(--bg-hover);
+    transform: translateX(-2px);
+}
+
+.sede-breadcrumb-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border-radius: 50px;
+    color: var(--text-primary);
+}
+
+.sede-breadcrumb-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+}
+
+.sede-breadcrumb-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sede-breadcrumb-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.sede-breadcrumb-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* Pestañas de navegación horizontal */
+.sede-breadcrumb-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.sede-breadcrumb-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.8rem;
+    border: none;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.sede-breadcrumb-tab:hover {
+    background: var(--bg-hover);
+}
+
+.sede-breadcrumb-tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Contenedor de contenido */
+.sede-config-content-wrapper {
+    flex: 1;
+    overflow: hidden;
+    padding: 1.5rem;
+}
+
+.sede-config-body {
+    max-width: 1400px;
+    margin: 0 auto;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* ── Paneles compartidos (todas las pestañas de Gestión Sede) ── */
+.sede-tab-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.config-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.config-panel-desc {
+    margin: 0 0 1rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.config-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 2px;
+    line-height: 1.35;
+}
+
+.config-form-panel {
+    background: var(--bg-surface-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.config-form-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.config-form-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.config-form-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.config-form-grid-auto {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.config-form-divider {
+    margin: 1.25rem 0;
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+.config-form-actions {
+    text-align: right;
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.config-table-wrap {
+    overflow-x: auto;
+}
+
+.config-table-compact {
+    font-size: 0.82rem;
+}
+
+.config-filter-bar {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.config-filter-btn {
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--bg-surface);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.config-filter-btn.active,
+.config-filter-btn:hover {
+    background: var(--primary-color, var(--primary, #ef4444));
+    color: #fff;
+    border-color: var(--primary-color, var(--primary, #ef4444));
+}
+
+.config-btn-danger-text {
+    color: #ef4444 !important;
+}
+
+.config-cell-actions {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.config-empty-row td {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2rem !important;
+}
+
+/* Habilidades ATC */
+.habilidades-empleado-card {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.habilidades-empleado-card .config-card-title {
+    font-size: 0.95rem;
+}
+
+.habilidades-section {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-surface-hover);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.habilidades-section:last-child {
+    margin-bottom: 0;
+}
+
+.habilidades-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin: 0 0 0.75rem 0;
+}
+
+.habilidades-checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+}
+
+.habilidades-checks label,
+.config-check-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.config-check-inline input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #ef4444;
+    cursor: pointer;
+}
+
+.config-check-inline input[type="number"] {
+    width: 70px;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.config-check-inline input[type="number"]:disabled {
+    background: var(--bg-surface-active);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+.sede-historico-card {
+    margin-top: 0;
+}
+
+/* RUCs */
+.sede-rucs-toolbar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.sede-rucs-search {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+}
+
+.sede-rucs-search .config-form-input {
+    padding-right: 2.5rem;
+}
+
+.sede-rucs-search-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.sede-rucs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+}
+
+.config-funciones-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    max-width: 180px;
+    margin-top: 2px;
+}
+
+/* Layout dividido para Datos Sede */
+.sede-datos-split-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: stretch;
+    height: 100%;
+}
+
+.sede-datos-form {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sede-datos-form .config-card {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sede-datos-map {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sede-datos-map .config-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sede-datos-map #sedeLocationMap {
+    flex: 1;
+    min-height: 300px;
+}
+
+/* Estilos para lista de RUCs */
+.ruc-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    transition: all 0.2s;
+}
+
+.ruc-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.ruc-item-desvinculado {
+    opacity: 0.85;
+    border-style: dashed;
+    background: var(--bg-surface-hover);
+}
+
+.ruc-item-desvinculado .ruc-number {
+    color: var(--text-muted);
+}
+
+.ruc-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.ruc-number {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.ruc-razon-social {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.ruc-details {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.ruc-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.ruc-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.ruc-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.ruc-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.ruc-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.ruc-action-btn.btn-view {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.ruc-action-btn.btn-view:hover {
+    background: var(--bg-hover);
+}
+
+.ruc-action-btn.btn-edit {
+    background: #8b5cf6;
+    color: white;
+}
+
+.ruc-action-btn.btn-edit:hover {
+    background: #7c3aed;
+    opacity: 1;
+}
+
+.ruc-action-btn.btn-delete {
+    background: #ef4444;
+    color: white;
+}
+
+.ruc-action-btn.btn-delete:hover {
+    opacity: 0.9;
+}
+
+.ruc-action-btn.btn-preview {
+    background: #0ea5e9;
+    color: white;
+}
+
+.ruc-action-btn.btn-preview:hover {
+    opacity: 0.9;
+}
+
+.ruc-action-btn.btn-link {
+    background: var(--info);
+    color: white;
+}
+
+.ruc-action-btn.btn-link:hover {
+    background: var(--info-hover);
+    box-shadow: 0 0 10px var(--info-glow);
+}
+
+.ruc-header {
+    justify-content: space-between;
+}
+
+/* Planes comerciales */
+.plan-filter-bar {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.plan-filter-btn {
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--bg-surface);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.plan-filter-btn.active,
+.plan-filter-btn:hover {
+    background: var(--primary);
+    color: var(--text-on-primary, #fff);
+    border-color: var(--primary);
+}
+
+.plan-form-panel {
+    background: var(--bg-surface-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.plan-form-section {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.plan-form-section:last-of-type {
+    border-bottom: none;
+}
+
+.plan-form-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.plan-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem;
+}
+
+.plan-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.plan-checks label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+}
+
+.plan-anexo-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 32px;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+}
+
+.plan-btn-remove {
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.plan-btn-sm {
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.75rem !important;
+}
+
+.plan-btn-danger {
+    color: #ef4444 !important;
+    border-color: #fecaca !important;
+}
+
+.plan-badge-INTERNET { background: #dbeafe; color: #1d4ed8; }
+.plan-badge-TV { background: #fce7f3; color: #be185d; }
+.plan-badge-DUO { background: #fef3c7; color: #b45309; }
+.plan-badge-APP { background: #d1fae5; color: #047857; }
+.plan-badge-SERVICIO { background: #e0e7ff; color: #4338ca; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .sede-datos-split-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .config-form-grid-2,
+    .config-form-grid-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .sede-breadcrumb-nav {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    
+    .sede-breadcrumb-left {
+        justify-content: space-between;
+    }
+    
+    .sede-breadcrumb-tabs {
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+    
+    .sede-breadcrumb-info {
+        padding: 0.6rem 1rem;
+    }
+    
+    .sede-breadcrumb-title {
+        font-size: 0.85rem;
+    }
+    
+    .sede-breadcrumb-subtitle {
+        font-size: 0.75rem;
+    }
+    
+    .sede-config-content-wrapper {
+        padding: 1rem;
+    }
+}

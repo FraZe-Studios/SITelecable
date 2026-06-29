@@ -1,0 +1,281 @@
+<!-- templates/organizacion/sede/planes.html -->
+<div id="sedeTabPlanes">
+    <div class="config-card" style="margin-bottom:1.5rem;">
+        <div class="config-card-title">
+            Catálogo de Planes Comerciales
+            <button class="config-btn-add" style="padding:0.25rem 0.6rem; font-size:0.72rem;" id="btnShowAddPlan" title="Crear Nuevo Plan">${GLOBAL_ICONS.add(16)}</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table class="config-table">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Nombre</th>
+                        <th>Cliente</th>
+                        <th>Costo</th>
+                        <th>Velocidad</th>
+                        <th>TV</th>
+                        <th>Prórroga</th>
+                        <th>Prorrateo</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="planesTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar/editar plan -->
+<div class="modal-backdrop" id="planModalBackdrop" role="dialog" aria-modal="true">
+    <div class="modal-container" style="max-width: 700px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="planModalTitle">Nuevo Plan</h3>
+            <button type="button" class="modal-close" id="planModalClose" aria-label="Cerrar" title="Cerrar">${GLOBAL_ICONS.close()}</button>
+        </div>
+        <div class="modal-body">
+            <form id="sedePlanForm">
+                <input type="hidden" name="plan_id" id="planFormId" value="">
+                
+                <h4 style="font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);margin-bottom:0.75rem;">Datos generales</h4>
+                
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">Tipo de servicio *</label>
+                        <select class="form-control" name="tipo_servicio" required>
+                            <option value="INTERNET">Internet</option>
+                            <option value="TV_CABLE">TV Cable</option>
+                            <option value="DUO">Dúo</option>
+                            <option value="APP">App / Digital</option>
+                            <option value="SERVICIO">Servicio</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de cliente *</label>
+                        <select class="form-control" name="tipo_cliente" required>
+                            <option value="RESIDENCIAL">Residencial</option>
+                            <option value="CORPORATIVO">Corporativo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nombre del plan *</label>
+                        <input type="text" class="form-control" name="nombre_plan" placeholder="Ej: PLAN 100M HOGAR" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Costo mensual (S/) *</label>
+                        <input type="number" step="0.01" class="form-control" name="costo_plan" placeholder="Ej: 69.90" required>
+                    </div>
+                </div>
+
+                <h4 style="font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);margin-bottom:0.75rem;">Internet</h4>
+                
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">Velocidad (Mbps)</label>
+                        <input type="number" class="form-control" name="velocidad_mbps" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Cantidad Canales de TV</label>
+                        <input type="number" class="form-control" name="cantidad_canales_tv" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Costo Instalación (S/.)</label>
+                        <input type="number" step="0.01" class="form-control" name="costo_instalacion" value="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Meses Contrato Mínimo</label>
+                        <input type="number" class="form-control" name="meses_contrato_minimo" value="1">
+                    </div>
+                </div>
+
+                <h4 style="font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);margin-bottom:0.75rem;">Reglas de cobro y pago</h4>
+                
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">Día de vencimiento del mes</label>
+                        <select class="form-control" name="dia_vencimiento">
+                            <option value="fin_mes">Cada fin de mes</option>
+                            <option value="inicio_mes">Inicio de mes</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Días de espera al cliente (gracia)</label>
+                        <input type="number" class="form-control" name="dias_gracia" value="0">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:2rem; flex-wrap:wrap; padding:0.5rem 0 1rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.9rem;">
+                        <input type="checkbox" name="admite_prorroga">
+                        <span>Admite prórroga de pago</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.9rem;">
+                        <input type="checkbox" name="admite_compromiso_pago">
+                        <span>Admite compromiso de pago</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.9rem;">
+                        <input type="checkbox" name="admite_prorrateo">
+                        <span>Admite prorrateo (mes parcial)</span>
+                    </label>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Descuento por pago anticipado</label>
+                        <div style="display:flex;gap:0.5rem;">
+                            <input type="number" class="form-control" name="descuento_dias_antes" placeholder="Días antes" value="0" style="flex:1;">
+                            <input type="number" step="0.01" class="form-control" name="descuento_monto" placeholder="Monto (S/)" value="0" style="flex:1;">
+                        </div>
+                        <small style="color:var(--text-muted);font-size:0.75rem;">Si el cliente paga X días antes de su fecha de vencimiento, se aplica el descuento indicado.</small>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="btnCancelPlanForm" title="Cancelar">${GLOBAL_ICONS.cancel()} Cancelar</button>
+            <button type="button" class="btn btn-save" id="btnSavePlan" title="Guardar Plan">${GLOBAL_ICONS.save()} Guardar Plan</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    window.renderSedeTabPlanes = function() {
+        const tbody = document.getElementById('planesTableBody');
+        let planRows = '';
+        window.currentSedeConfigData.planes.forEach(p => {
+            planRows += `
+                <tr>
+                    <td><span class="config-badge config-badge-info">${p.tipo_servicio}</span></td>
+                    <td><strong>${p.nombre_plan}</strong></td>
+                    <td>${p.tipo_cliente}</td>
+                    <td>S/. ${parseFloat(p.costo_plan).toFixed(2)}</td>
+                    <td>${p.velocidad_mbps} Mbps</td>
+                    <td>${p.cantidad_canales_tv > 0 ? p.cantidad_canales_tv + ' canales' : 'Sin TV'}</td>
+                    <td>${p.admite_prorroga ? 'SI' : 'NO'}</td>
+                    <td>${p.admite_prorrateo ? 'SI' : 'NO'}</td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        <button class="config-btn-icon" onclick="window.editarSedePlan(${p.id})" title="Editar">${GLOBAL_ICONS.edit()}</button>
+                        <button class="config-btn-icon config-btn-icon-danger" onclick="window.eliminarSedePlan(${p.id})" title="Eliminar">${GLOBAL_ICONS.delete()}</button>
+                    </td>
+                </tr>`;
+        });
+        tbody.innerHTML = planRows || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:2rem;">No hay planes comerciales registrados.</td></tr>`;
+        document.getElementById('sedeTabPlanes').style.display = 'block';
+    };
+
+    const btnShow = document.getElementById('btnShowAddPlan');
+    const modalBackdrop = document.getElementById('planModalBackdrop');
+    const modalTitle = document.getElementById('planModalTitle');
+    const form = document.getElementById('sedePlanForm');
+    const planFormId = document.getElementById('planFormId');
+    const modalClose = document.getElementById('planModalClose');
+    const btnCancel = document.getElementById('btnCancelPlanForm');
+    const btnSave = document.getElementById('btnSavePlan');
+
+    function showModal(title = 'Nuevo Plan') {
+        modalTitle.textContent = title;
+        modalBackdrop.classList.add('show');
+    }
+
+    function hideModal() {
+        modalBackdrop.classList.remove('show');
+        planFormId.value = '';
+        form.reset();
+    }
+
+    btnShow?.addEventListener('click', () => {
+        planFormId.value = '';
+        form.reset();
+        showModal('Nuevo Plan');
+    });
+
+    modalClose?.addEventListener('click', hideModal);
+    btnCancel?.addEventListener('click', hideModal);
+
+    modalBackdrop?.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) hideModal();
+    });
+
+    window.editarSedePlan = (planId) => {
+        const p = window.currentSedeConfigData.planes.find(item => item.id == planId);
+        if (!p) return;
+        planFormId.value = planId;
+        form.querySelector('[name="tipo_servicio"]').value = p.tipo_servicio;
+        form.querySelector('[name="tipo_cliente"]').value = p.tipo_cliente;
+        form.querySelector('[name="nombre_plan"]').value = p.nombre_plan;
+        form.querySelector('[name="costo_plan"]').value = p.costo_plan;
+        form.querySelector('[name="velocidad_mbps"]').value = p.velocidad_mbps;
+        form.querySelector('[name="cantidad_canales_tv"]').value = p.cantidad_canales_tv;
+        form.querySelector('[name="costo_instalacion"]').value = p.costo_instalacion;
+        form.querySelector('[name="meses_contrato_minimo"]').value = p.meses_contrato_minimo;
+        form.querySelector('[name="admite_prorroga"]').checked = p.admite_prorroga;
+        form.querySelector('[name="admite_prorrateo"]').checked = p.admite_prorrateo;
+        showModal('Editar Plan');
+    };
+
+    window.eliminarSedePlan = async (planId) => {
+        if (!confirm('¿Eliminar este plan comercial?')) return;
+        try {
+            const resp = await fetch('/api/sede/config/plan/eliminar/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.getCookie('csrftoken') },
+                body: JSON.stringify({ sede_id: window.currentSedeId, plan_id: planId })
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                window.openSedeConfig(window.currentSedeId, 'planes');
+            } else alert(`Error: ${res.message}`);
+        } catch (e) { alert('Error de conexión.'); }
+    };
+
+    btnSave?.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const data = {
+            sede_id: window.currentSedeId,
+            plan_id: planFormId.value || null,
+            tipo_servicio: fd.get('tipo_servicio'),
+            tipo_cliente: fd.get('tipo_cliente'),
+            nombre_plan: fd.get('nombre_plan'),
+            costo_plan: fd.get('costo_plan'),
+            velocidad_mbps: fd.get('velocidad_mbps') || 0,
+            cantidad_canales_tv: fd.get('cantidad_canales_tv') || 0,
+            costo_instalacion: fd.get('costo_instalacion') || 0,
+            meses_contrato_minimo: fd.get('meses_contrato_minimo') || 1,
+            admite_prorroga: fd.get('admite_prorroga') !== null,
+            admite_prorrateo: fd.get('admite_prorrateo') !== null
+        };
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        btnSave.disabled = true;
+        btnSave.textContent = 'Guardando...';
+        try {
+            const resp = await fetch('/api/sede/config/plan/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.getCookie('csrftoken') },
+                body: JSON.stringify(data)
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                hideModal();
+                window.openSedeConfig(window.currentSedeId, 'planes');
+                alert('Plan guardado correctamente.');
+            } else { 
+                alert(`Error: ${res.message}`); 
+                btnSave.disabled = false; 
+                btnSave.textContent = 'Guardar Plan'; 
+            }
+        } catch (err) { 
+            alert('Error al guardar plan.'); 
+            btnSave.disabled = false; 
+            btnSave.textContent = 'Guardar Plan'; 
+        }
+    });
+})();
+</script>

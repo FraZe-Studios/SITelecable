@@ -1,0 +1,169 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materiales y Equipos | SIT Telecable</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'global/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/materiales.css' %}">
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ══ TOP NAVBAR ══════════════════════════════════════════════════════ -->
+    {% include "global/navbar.html" %}
+
+    <!-- ══ CUERPO ══════════════════════════════════════════════════════════ -->
+    <div class="app-wrapper">
+        <main class="main-content">
+
+            <!-- ── PAGE HEADER ─────────────────────────────────────────── -->
+            <div class="page-header">
+                <div class="page-header-content">
+                    <div class="page-header-title">
+                        <h1>Materiales y Equipos</h1>
+                        <p class="page-header-desc">Catálogo general de materiales y equipos para la planta de red</p>
+                    </div>
+                    <button class="btn-primary" id="btnNuevoMaterial">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        Nuevo Material
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── FILTERS BAR ─────────────────────────────────────────── -->
+            <div class="filters-bar">
+                <div class="filters-search">
+                    <svg class="filters-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="searchMaterial" class="filters-search-input" placeholder="Buscar material..." autocomplete="off">
+                </div>
+                <div class="filters-group">
+                    <button class="filter-btn active" data-filter="todos">Todos</button>
+                    <button class="filter-btn" data-filter="equipo">Equipos</button>
+                    <button class="filter-btn" data-filter="materiales">Materiales</button>
+                </div>
+            </div>
+
+            <!-- ── MATERIALS TABLE ─────────────────────────────────────── -->
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Requiere MAC</th>
+                            <th>Requiere Serie</th>
+                            <th>Descripción</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="materialesTableBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <span>No se encontraron materiales</span>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- ══ MODAL: NUEVO/EDITAR MATERIAL ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="materialModal" style="display: none;">
+    <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span id="modalTitle">Nuevo material</span>
+            </div>
+            <button class="modal-close" id="btnCloseModal" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form id="materialForm">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="nombre">Nombre del material o equipo *</label>
+                    <input type="text" id="nombre" name="nombre" class="form-input" required placeholder="Ej: Cable drop, ONT, Repetidor WiFi">
+                </div>
+                <div class="form-group">
+                    <label for="tipo_material">Tipo de material *</label>
+                    <select id="tipo_material" name="tipo_material" class="form-input" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="equipo">Equipo</option>
+                        <option value="materiales">Materiales</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="requiere_mac" name="requiere_mac">
+                        <span>Requiere MAC</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="requiere_serie" name="requiere_serie">
+                        <span>Requiere Número de Serie</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="descripcion">Descripción</label>
+                    <textarea id="descripcion" name="descripcion" class="form-input" rows="3" placeholder="Opcional..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btnCancel">Cancelar</button>
+                <button type="submit" class="btn-primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══ MODAL: CONFIRMAR ELIMINACIÓN ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="confirmModal" style="display: none;">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <div class="modal-title">Confirmar eliminación</div>
+            <button class="modal-close" id="btnCloseConfirmModal" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>¿Está seguro de que desea eliminar este material? Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-secondary" id="btnCancelDelete">Cancelar</button>
+            <button type="button" class="btn-danger" id="btnConfirmDelete">Eliminar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ JAVASCRIPT ═══════════════════════════════════════════════════════ -->
+<script src="{% static 'js/global/icons.js' %}"></script>
+<script src="{% static 'js/materiales/materiales.js' %}"></script>
+</body>
+</html>

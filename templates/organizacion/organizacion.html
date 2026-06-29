@@ -1,0 +1,254 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organización - Planta de Red | SIT Telecable</title>
+    <meta name="description" content="Gestión geográfica de la planta de red: Sedes, Hubs, NAPs, Mufas, Sectores y Fibras ópticas.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+    <link rel="stylesheet" href="{% static 'global/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/organizacion.css' %}">
+    <link rel="stylesheet" href="{% static 'css/organizacion/sede-config-full-view.css' %}">
+    <link rel="stylesheet" href="{% static 'css/organizacion/file-upload.css' %}">
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ══ TOP NAVBAR ══════════════════════════════════════════════════════ -->
+    {% include "global/navbar.html" %}
+
+    <!-- ══ CUERPO ══════════════════════════════════════════════════════════ -->
+    <div class="app-wrapper">
+        <main class="main-content" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
+
+            <!-- ── TOPBAR: Leyenda + 3 botones ──────────────────────────── -->
+            <div class="org-topbar">
+                <!-- Leyenda (scrollable horizontal) -->
+                <div class="org-legend-items" id="legendItems">
+                    <button class="legend-item active" data-filter="SEDE">
+                        <span class="legend-dot color-sede"></span> Sede
+                    </button>
+                    <button class="legend-item active" data-filter="HUB">
+                        <span class="legend-dot color-hub"></span> Hub
+                    </button>
+                    <button class="legend-item active" data-filter="MUFA">
+                        <span class="legend-dot color-mufa"></span> Mufa
+                    </button>
+                    <button class="legend-item active" data-filter="NAP">
+                        <span class="legend-dot color-nap"></span> NAP
+                    </button>
+                    <button class="legend-item active" data-filter="SECTOR">
+                        <span class="legend-polygon color-sector"></span> Sector
+                    </button>
+                    <button class="legend-item active" data-filter="FIBRA">
+                        <span class="legend-line color-fibra"></span> Fibra
+                    </button>
+                    <button class="legend-item active" data-filter="CLIENTE">
+                        <span class="legend-dot color-cliente"></span> Cliente
+                    </button>
+                </div>
+
+                <!-- 3 botones de acción -->
+                <div class="org-topbar-actions">
+                    <!-- Input oculto para seleccionar Excel -->
+                    <input type="file" id="excelFileInput" accept=".xlsx,.xls">
+
+                    <button class="org-action-btn btn-cambio-equipo" id="btnCambioEquipo" title="Cambio de equipo - Activa flujo de reemplazo de dispositivo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Cambio de Equipo</span>
+                    </button>
+
+                    <button class="org-action-btn btn-template" id="btnDescargarModelo" title="Descargar plantilla Excel">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="12" y1="12" x2="12" y2="18"></line>
+                            <polyline points="9 15 12 18 15 15"></polyline>
+                        </svg>
+                        <span>Descargar Modelo</span>
+                    </button>
+
+                    <button class="org-action-btn btn-import" id="btnImportarExcel" title="Importar desde Excel">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Importar Excel</span>
+                    </button>
+
+                    <button class="org-action-btn btn-export" id="btnExportarExcel" title="Exportar todo a Excel">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>Exportar Todo</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ══ VISTA COMPLETA: CONFIGURACIÓN MAESTRO DE SEDE ══════════════════════════════ -->
+            {% include "organizacion/components/modals/sede_config_overlay.html" %}
+
+            <!-- ── SPLIT PANEL ─────────────────────────────────────────── -->
+            <div class="org-layout">
+
+                <!-- Panel izquierdo -->
+                <aside class="org-panel-left">
+                    <!-- Búsqueda + Filtros -->
+                    <div class="org-search">
+                        <div class="org-search-wrapper">
+                            <svg class="org-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <input type="text" id="orgSearchInput" class="org-search-input" placeholder="Buscar por código, nombre..." autocomplete="off">
+                        </div>
+                        <div class="org-filter-bar">
+                            <button class="org-filter-btn active" data-type="TODOS">Todos</button>
+                            <button class="org-filter-btn" data-type="SEDE">Sede</button>
+                            <button class="org-filter-btn" data-type="HUB">Hub</button>
+                            <button class="org-filter-btn" data-type="NAP">NAP</button>
+                            <button class="org-filter-btn" data-type="MUFA">Mufa</button>
+                            <button class="org-filter-btn" data-type="SECTOR">Sector</button>
+                            <button class="org-filter-btn" data-type="FIBRA">Fibra</button>
+                        </div>
+                    </div>
+
+                    <!-- Contador -->
+                    <div class="org-count-bar">
+                        <span>Mostrando <strong id="itemCountDisplay">0</strong> elementos</span>
+                        <div class="loading-spinner" id="loadingSpinner"></div>
+                    </div>
+
+                    <!-- Tabla con botones editar/eliminar -->
+                    <div class="org-table-container">
+                        <table class="org-table" id="orgTable">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Código / Nombre</th>
+                                    <th style="text-align:right;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="orgTableBody"></tbody>
+                        </table>
+                        <div class="org-empty-state" id="orgEmptyState" style="display:none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                            <span>No se encontraron elementos</span>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Panel derecho: MAPA -->
+                <div class="org-panel-right">
+                    <div id="org-map"></div>
+
+                    <!-- Panel de distancia flotante -->
+                    <div class="distance-panel" id="distancePanel" style="display:none">
+                        <div class="dp-header">Ruta de Fibra</div>
+                        <div class="dp-row">Ruta: <strong id="dpRuta">0.00 km</strong></div>
+                        <div class="dp-row">Con holgura: <strong id="dpHolgura">0.00 km</strong></div>
+                        <div class="dp-row" style="align-items: center; margin-top: 4px;">
+                            <label for="dpPct" style="font-size:0.72rem; color:var(--text-muted);">Holgura: </label>
+                            <input type="number" id="dpPct" value="15" min="0" max="50" step="1" style="width: 48px; padding: 2px 4px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 0.72rem; margin-left: 4px; background: transparent; color: inherit; box-sizing: border-box; text-align: center;">%
+                        </div>
+                    </div>
+
+                    <!-- Selector de tipo a añadir -->
+                    <div class="map-add-type-panel" id="addTypePanel">
+                        <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.06em;margin-bottom:0.2rem;padding:0 0.25rem;">Añadir al mapa</div>
+                        <button class="add-type-btn tipo-sede"   data-add-type="SEDE"><span class="add-type-dot color-sede"></span> Sede</button>
+                        <button class="add-type-btn tipo-hub"    data-add-type="HUB"><span class="add-type-dot color-hub"></span> Hub</button>
+                        <button class="add-type-btn tipo-nap"    data-add-type="NAP"><span class="add-type-dot color-nap"></span> NAP</button>
+                        <button class="add-type-btn tipo-mufa"   data-add-type="MUFA"><span class="add-type-dot color-mufa"></span> Mufa</button>
+                        <button class="add-type-btn tipo-sector" data-add-type="SECTOR"><span class="add-type-dot color-sector" style="border-radius:2px;"></span> Sector</button>
+                        <button class="add-type-btn tipo-fibra"  data-add-type="FIBRA"><span class="add-type-dot color-fibra" style="border-radius:2px;width:18px;height:3px;"></span> Fibra</button>
+                        <button class="add-type-btn" id="cancelAddBtn" style="color:var(--danger);margin-top:0.15rem;border-top:1px solid var(--border-color);padding-top:0.5rem;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            Cancelar
+                        </button>
+                    </div>
+
+                    <!-- Controles mapa -->
+                    <div class="map-controls">
+                        <button class="map-btn" id="btnAddElement" title="Añadir elemento al mapa">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        </button>
+                        <button class="map-btn" id="btnFitMap" title="Ajustar vista">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- Indicador modo añadir -->
+                    <div class="map-add-indicator" id="mapAddIndicator">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        <span id="addIndicatorText">Clic en el mapa para posicionar</span>
+                        <button type="button" id="btnGuardarDibujo" class="btn-finish-draw" style="display:none;">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+
+<!-- ══ MODAL: AÑADIR / EDITAR ELEMENTO ════════════════════════════════════ -->
+{% include "organizacion/components/modals/org_modal.html" %}
+
+<!-- ══ MODAL: IMPORTAR EXCEL ══════════════════════════════════════════════ -->
+{% include "organizacion/components/modals/import_modal.html" %}
+
+<!-- ══ MODAL: CONFIRMAR ELIMINACIÓN ══════════════════════════════════════ -->
+{% include "organizacion/components/modals/confirm_modal.html" %}
+
+<!-- ══ LEAFLET + LÓGICA ═══════════════════════════════════════════════════ -->
+<!-- Leaflet y Leaflet Draw -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+<!-- Datos de la red (pasados desde Django) -->
+<script>
+window.RED_DATA = {
+    sedes:    {{ sedes_json|safe }},
+    hubs:     {{ hubs_json|safe }},
+    naps:     {{ naps_json|safe }},
+    mufas:    {{ mufas_json|safe }},
+    sectores: {{ sectores_json|safe }},
+    fibras:   {{ fibras_json|safe }},
+    clientes: {{ clientes_json|safe }},
+};
+</script>
+
+<!-- Módulos JavaScript separados -->
+<!-- Iconos globales estandarizados -->
+<script src="{% static 'js/global/icons.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-main.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-mapa.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-tabla.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-modales.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-import.js' %}"></script>
+<script src="{% static 'js/organizacion/image-compressor.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-sede-config.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-sede-rucs.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-sede-planes.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-sede-personal.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-sede-habilidades.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-sede-materiales.js' %}"></script>
+<script src="{% static 'js/organizacion/cajas.js' %}"></script>
+<script src="{% static 'js/global/ticket-simple.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-sede-tickets-config.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-vertices.js' %}"></script>
+<script src="{% static 'js/organizacion/organizacion-add-mode.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{% load static %}
+{# ticket_print.html — Vista de impresión del ticket de atención.                   #}
+{# Variables disponibles del contexto: logo_url, codigo_ticket, ticket, sede,       #}
+{# cliente, servicio, codigo_cliente                                                 #}
+
+{% comment %}
+Categorías que muestran el nombre del ticket en lugar de la categoría:
+INSTALACION, CORTES, RETIROS LOGICOS, RETIRO DE MATERIALES
+{% endcomment %}
+
+{% with categorias_auto="INSTALACION,CORTES,RETIROS LOGICOS,RETIRO DE MATERIALES" %}
+{% with cat_upper=ticket.categoria|upper %}
+{% if cat_upper == "INSTALACION" or cat_upper == "CORTES" or cat_upper == "RETIROS LOGICOS" or cat_upper == "RETIRO DE MATERIALES" %}
+    {% with titulo_ticket=ticket.catalogo_nombre|default:ticket.categoria %}
+        {% include "global/components/ticket_simple.html" with
+            logo_url=logo_url
+            ticket_number=codigo_ticket
+            titulo_ticket=titulo_ticket
+            telefono=sede.telefono|default:"064466080"
+            sede=sede.nombre|default:"LA OROYA"
+            cliente_nombre=cliente.nombre_apellidos|default:"—"
+            cliente_dni=cliente.dni|default:"—"
+            cliente_codigo=codigo_cliente
+            cliente_telefono=cliente.celular_1|default:"—"
+            cliente_celular=cliente.celular_2|default:"—"
+            cliente_direccion=servicio.direccion_servicio|default:"—"
+            cliente_contrato=servicio.id|default:"—"
+            cliente_sector=servicio.caja_nap.sector.nombre|default:"—"
+            servicio_suministro=servicio.suministro.numero_suministro|default:"—"
+            servicio_plan=servicio.plan.nombre_plan|default:"—"
+            servicio_codigo=servicio.id|default:"—"
+            servicio_velocidad=servicio.plan.velocidad|default:"—"
+            servicio_estado=servicio.estado_suscripcion|default:"—"
+            servicio_anexos=servicio.numero_anexos|default:"—"
+            servicio_nap=servicio.nap_id|default:"—"
+            servicio_puerto=servicio.puerto_nap|default:"—"
+            servicio_precinto=servicio.presinto_numero|default:"—"
+            servicio_serie_equipo=servicio.serie_equipo|default:"—"
+            servicio_mac_equipo=servicio.mac_equipo|default:"—"
+            ticket_motivo=ticket.motivo|default:"—"
+            ticket_detalle=ticket.detalle|default:"—"
+            ticket_fecha_emision=ticket.fecha_creacion|date:"d/m/Y"|default:"—"
+            ticket_hora_emision=ticket.fecha_creacion|time:"H:i"|default:"—"
+            ticket_fecha_atencion=ticket.fecha_atencion|date:"d/m/Y"|default:"—"
+            ticket_hora_atencion=ticket.fecha_atencion|time:"H:i"|default:"—"
+            ticket_observacion=ticket.observacion|default:"—"
+            ticket_materiales_usados=ticket_materiales_usados|default:"—"
+            ticket_materiales_retirados=ticket_materiales_retirados|default:"—"
+        %}
+    {% endwith %}
+{% else %}
+    {% include "global/components/ticket_simple.html" with
+        logo_url=logo_url
+        ticket_number=codigo_ticket
+        titulo_ticket=ticket.categoria|default:"INCIDENCIA"
+        telefono=sede.telefono|default:"064466080"
+        sede=sede.nombre|default:"LA OROYA"
+        cliente_nombre=cliente.nombre_apellidos|default:"—"
+        cliente_dni=cliente.dni|default:"—"
+        cliente_codigo=codigo_cliente
+        cliente_telefono=cliente.celular_1|default:"—"
+        cliente_celular=cliente.celular_2|default:"—"
+        cliente_direccion=servicio.direccion_servicio|default:"—"
+        cliente_contrato=servicio.id|default:"—"
+        cliente_sector=servicio.caja_nap.sector.nombre|default:"—"
+        servicio_suministro=servicio.suministro.numero_suministro|default:"—"
+        servicio_plan=servicio.plan.nombre_plan|default:"—"
+        servicio_codigo=servicio.id|default:"—"
+        servicio_velocidad=servicio.plan.velocidad|default:"—"
+        servicio_estado=servicio.estado_suscripcion|default:"—"
+        servicio_anexos=servicio.numero_anexos|default:"—"
+        servicio_nap=servicio.nap_id|default:"—"
+        servicio_puerto=servicio.puerto_nap|default:"—"
+        servicio_precinto=servicio.presinto_numero|default:"—"
+        servicio_serie_equipo=servicio.serie_equipo|default:"—"
+        servicio_mac_equipo=servicio.mac_equipo|default:"—"
+        ticket_motivo=ticket.motivo|default:"—"
+        ticket_detalle=ticket.detalle|default:"—"
+        ticket_fecha_emision=ticket.fecha_creacion|date:"d/m/Y"|default:"—"
+        ticket_hora_emision=ticket.fecha_creacion|time:"H:i"|default:"—"
+        ticket_fecha_atencion=ticket.fecha_atencion|date:"d/m/Y"|default:"—"
+        ticket_hora_atencion=ticket.fecha_atencion|time:"H:i"|default:"—"
+        ticket_observacion=ticket.observacion|default:"—"
+        ticket_materiales_usados=ticket_materiales_usados|default:"—"
+        ticket_materiales_retirados=ticket_materiales_retirados|default:"—"
+    %}
+{% endif %}
+{% endwith %}
+{% endwith %}

@@ -1,0 +1,15 @@
+{% load static %}
+<!-- ══ MODAL: CONFIRMAR ELIMINACIÓN ══════════════════════════════════════ -->
+<div class="confirm-modal-overlay" id="confirmModalOverlay">
+    <div class="confirm-modal">
+        <div class="confirm-modal-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+        </div>
+        <h3>¿Eliminar elemento?</h3>
+        <p id="confirmModalText">Esta acción no se puede deshacer.</p>
+        <div class="confirm-modal-actions">
+            <button class="btn-cancel" id="confirmModalCancel" title="Cancelar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Cancelar</button>
+            <button class="btn-danger" id="confirmModalOk" title="Eliminar definitivamente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;margin-right:4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg> Eliminar</button>
+        </div>
+    </div>
+</div>

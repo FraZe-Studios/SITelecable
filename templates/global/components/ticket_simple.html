@@ -1,0 +1,61 @@
+{% load static %}
+<div id="ticket-root-{{ ticket_number }}"></div>
+
+<script src="{% static 'js/global/ticket-simple.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('ticket-root-{{ ticket_number }}');
+        if (container && typeof window.generateSimpleTicketHTML === 'function') {
+            const html = window.generateSimpleTicketHTML(
+                "{{ logo_url|escapejs }}",
+                "{{ ticket_number|escapejs }}",
+                "{{ titulo_ticket|escapejs }}",
+                "{{ telefono|escapejs }}",
+                "{{ sede|escapejs }}",
+                {
+                    nombre: "{{ cliente_nombre|escapejs }}",
+                    dni: "{{ cliente_dni|escapejs }}",
+                    codigo: "{{ cliente_codigo|escapejs }}",
+                    contrato: "{{ cliente_contrato|escapejs }}",
+                    celular1: "{{ cliente_telefono|escapejs }}",
+                    celular2: "{{ cliente_celular|escapejs }}",
+                    direccion: "{{ cliente_direccion|escapejs }}",
+                    sector: "{{ cliente_sector|escapejs }}"
+                },
+                {
+                    suministro: "{{ servicio_suministro|escapejs }}",
+                    plan: "{{ servicio_plan|escapejs }}",
+                    codigo: "{{ servicio_codigo|escapejs }}",
+                    velocidad: "{{ servicio_velocidad|escapejs }}",
+                    estado: "{{ servicio_estado|escapejs }}",
+                    anexos: "{{ servicio_anexos|escapejs }}",
+                    nap: "{{ servicio_nap|escapejs }}",
+                    puerto: "{{ servicio_puerto|escapejs }}",
+                    precinto: "{{ servicio_precinto|escapejs }}",
+                    serie_equipo: "{{ servicio_serie_equipo|escapejs }}",
+                    mac_equipo: "{{ servicio_mac_equipo|escapejs }}"
+                },
+                {
+                    motivo: "{{ ticket_motivo|escapejs }}",
+                    detalle: "{{ ticket_detalle|escapejs }}",
+                    fecha_emision: "{{ ticket_fecha_emision|escapejs }}",
+                    hora_emision: "{{ ticket_hora_emision|escapejs }}",
+                    fecha_atencion: "{{ ticket_fecha_atencion|escapejs }}",
+                    hora_atencion: "{{ ticket_hora_atencion|escapejs }}",
+                    materiales_usados: "{{ ticket_materiales_usados|default:'—'|escapejs }}",
+                    materiales_retirados: "{{ ticket_materiales_retirados|default:'—'|escapejs }}",
+                    observacion: "{{ ticket_observacion|escapejs }}"
+                },
+                "{{ titulo_ticket|escapejs }}"
+            );
+            container.outerHTML = html;
+
+            // Auto-imprimir si estamos en una página de impresión
+            if (window.location.pathname.includes('/print/')) {
+                setTimeout(() => {
+                    window.print();
+                }, 300);
+            }
+        }
+    });
+</script>

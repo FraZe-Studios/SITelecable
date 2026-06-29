@@ -1,0 +1,201 @@
+/* =============================================================================
+   SIT Telecable - Hoja de Estilos Específica del Dashboard (dashboard.css)
+   ============================================================================= */
+
+/* Métricas y Tarjetas de Estadísticas */
+.stat-card {
+    background-color: var(--bg-surface);
+    border: var(--border-thin) solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-normal);
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--border-color-hover);
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--primary-glow);
+    color: var(--primary);
+}
+
+.stat-icon-wrapper svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2;
+}
+
+.stat-card:nth-child(2) .stat-icon-wrapper {
+    background-color: var(--secondary-glow);
+    color: var(--secondary);
+}
+
+.stat-card:nth-child(3) .stat-icon-wrapper {
+    background-color: var(--success-glow);
+    color: var(--success);
+}
+
+.stat-card:nth-child(4) .stat-icon-wrapper {
+    background-color: var(--warning-glow);
+    color: var(--warning);
+}
+
+/* Header del Dashboard */
+.dashboard-header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1rem;
+    border-bottom: var(--border-thin) solid var(--border-color);
+}
+
+.dashboard-header h1 {
+    margin-bottom: 0.25rem;
+}
+
+.dashboard-header p {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+/* Perfil y logout */
+.user-profile-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    background-color: var(--bg-surface-hover);
+    border: var(--border-thin) solid var(--border-color);
+    border-radius: var(--radius-round);
+}
+
+.user-profile-badge span {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-round);
+    background-color: var(--primary);
+    color: var(--text-on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.logout-btn {
+    color: var(--danger);
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.5rem 0.85rem;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+}
+
+.logout-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.logout-btn:hover {
+    background-color: var(--danger-glow);
+    color: var(--danger-hover);
+}
+
+/* Clases específicas del layout interno */
+.metrics-grid {
+    margin-bottom: 2.5rem;
+}
+
+.sidebar-brand-logo {
+    color: var(--primary);
+    width: 28px;
+    height: 28px;
+}
+
+.sidebar-brand-text {
+    font-weight: 800;
+    font-size: 1.25rem;
+}
+
+.system-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.system-info-item {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: var(--border-thin) solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.system-info-item:last-child {
+    border-bottom: none;
+}
+
+.system-info-item .info-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.system-info-item .info-value-mono {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+}
+
+.system-info-item .info-value {
+    font-size: 0.9rem;
+}
+
+.system-info-item .info-value-success {
+    font-size: 0.9rem;
+    color: var(--success);
+    font-weight: 600;
+}

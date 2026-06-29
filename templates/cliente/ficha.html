@@ -1,0 +1,307 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html lang="es" data-theme="light">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>{{ cliente.id_cliente_codigo }} | Ficha Abonado</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <link rel="stylesheet" href="{% static 'global/css/global.css' %}">
+
+    <link rel="stylesheet" href="{% static 'global/css/layout.css' %}">
+
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+    <link rel="stylesheet" href="{% static 'css/abonados.css' %}">
+
+</head>
+
+<body>
+
+<div class="app-container">
+    {% include "global/navbar.html" %}
+
+    <div class="app-wrapper">
+        <main class="main-content ficha-page" id="fichaApp"
+
+              data-cliente-id="{{ cliente.id_cliente_codigo }}"
+
+              data-ctx-vendedor='{{ ctx_vendedor_json|escapejs }}'>
+
+            <script id="client-data" type="application/json">{{ client_data_json|safe }}</script>
+
+
+
+            <div class="ficha-header">
+
+                <div class="ficha-card">
+
+                    <div class="ficha-title-row">
+
+                        <a href="{% url 'abonados_list' %}" class="abonados-btn abonados-btn-ghost" style="text-decoration: none; display: inline-flex; align-items: center;"><i class="fa-solid fa-arrow-left"></i> Volver a abonados</a>
+
+                        <span class="ab-code ficha-code">{{ cliente.id_cliente_codigo }}</span>
+
+                        <span class="ficha-title">{{ cliente.razon_social|default:cliente.nombre_apellidos }}</span>
+
+                        <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="ab-status ab-status-{{ estado_comercial|lower }}">{{ estado_comercial }}</span>
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-editar-cliente" data-cliente="{{ cliente.id_cliente_codigo }}"><i class="fa-solid fa-pen"></i> Editar</button>
+                        </div>
+
+                    </div>
+
+                    <div class="ficha-data-flow">
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Tipo cliente:</span><span class="ficha-flow-value" id="field-tipo-cliente">—</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">DNI:</span><span class="ficha-flow-value" id="field-dni">{{ cliente.dni|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">RUC:</span><span class="ficha-flow-value" id="field-ruc">{{ cliente.ruc|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Nombres y apellidos:</span><span class="ficha-flow-value" id="field-nombres-apellidos">{{ cliente.nombre_apellidos|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Razón social:</span><span class="ficha-flow-value" id="field-razon-social">{{ cliente.razon_social|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Fecha nacimiento:</span><span class="ficha-flow-value" id="field-fecha-nacimiento">{{ cliente.fecha_nacimiento|date:"d/m/Y"|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Estado civil:</span><span class="ficha-flow-value" id="field-estado-civil">{{ cliente.estado_civil|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Celular 1:</span><span class="ficha-flow-value" id="field-celular1">{{ cliente.celular_1|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Celular 2:</span><span class="ficha-flow-value" id="field-celular2">{{ cliente.celular_2|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Correo:</span><span class="ficha-flow-value" id="field-correo">{{ cliente.correo|default:"—" }}</span></div>
+
+                        <div class="ficha-flow-item"><span class="ficha-flow-label">Dirección fiscal:</span><span class="ficha-flow-value" id="field-direccion-fiscal">{{ cliente.direccion_fiscal|default:"—" }}</span></div>
+
+                    </div>
+
+                    <div class="ficha-tickets-row">
+
+                        <span class="ficha-tickets-label">TICKETS:</span>
+
+                        {% for detalle in suscripciones_detalles %}
+
+                            {% for t in detalle.tickets %}
+
+                            {% if t.estado_ticket != 'LIQUIDADO' and t.estado_ticket != 'COMPLETADO' and t.estado_ticket != 'CANCELADO' and t.estado_ticket != 'completado' and t.estado_ticket != 'cancelado' and t.estado_ticket != 'liquidado' %}
+
+                            {% if t.modalidad == 'campo' or t.area == 'planta_externa' %}
+                            <a href="?suscripcion={{ detalle.codigo_servicio }}&tab=campo#T{{ t.id }}" class="ab-pending-badge ticket campo">
+                                <i class="fa-solid fa-person-digging"></i> {{ t.catalogo_nombre|default:t.tipo_ticket|truncatechars:20 }} T{{ t.id }}
+                            </a>
+                            {% else %}
+                            <a href="?suscripcion={{ detalle.codigo_servicio }}&tab=remoto#T{{ t.id }}" class="ab-pending-badge ticket">
+                                <i class="fa-solid fa-headset"></i> {{ t.catalogo_nombre|default:t.tipo_ticket|truncatechars:20 }} T{{ t.id }}
+                            </a>
+                            {% endif %}
+
+                            {% endif %}
+
+                            {% endfor %}
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% if suscripciones_detalles %}
+
+            <div class="ficha-service-pills">
+
+                {% for detalle in suscripciones_detalles %}
+
+                <button type="button" class="ficha-service-pill {% if suscripcion_filtro|stringformat:"s" == detalle.codigo_servicio|stringformat:"s" or not suscripcion_filtro and forloop.first %}active{% endif %}"
+
+                        data-suscripcion="{{ detalle.codigo_servicio }}">
+
+                    <span class="ficha-pill-code">{{ detalle.codigo_servicio_display }}</span>
+
+                    <span class="ficha-pill-plan">{{ detalle.obj.plan.nombre_plan|upper }}</span>
+
+                    {% with pp=detalle.periodo_pagado %}
+                    {% if pp and pp.pagado_hasta %}
+                    <span style="font-size: 0.6rem; font-weight: 700; margin-top: 1px; {% if pp.tiene_deuda_pendiente %}color: #f59e0b;{% else %}color: #22c55e;{% endif %}">
+                        <i class="fa-solid {% if pp.tiene_deuda_pendiente %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}"></i>
+                        Pagado hasta {{ pp.pagado_hasta|date:"d/m/Y" }}
+                    </span>
+                    {% elif pp and pp.tiene_deuda_pendiente %}
+                    <span style="font-size: 0.6rem; font-weight: 700; margin-top: 1px; color: #ef4444;">
+                        <i class="fa-solid fa-circle-xmark"></i> Deuda pendiente
+                    </span>
+                    {% endif %}
+                    {% endwith %}
+
+                </button>
+
+                {% endfor %}
+
+            </div>
+
+
+
+            {% for detalle in suscripciones_detalles %}
+
+                {% if not suscripcion_filtro or suscripcion_filtro|stringformat:"s" == detalle.codigo_servicio|stringformat:"s" %}
+
+                    {% include "cliente/components/ficha_servicio_panel.html" %}
+
+                {% endif %}
+
+            {% endfor %}
+
+            {% else %}
+
+            <div class="ficha-card"><p class="ab-address">Sin suscripciones activas.</p></div>
+
+            {% endif %}
+
+
+
+            {% if comprobantes %}
+
+            <div class="ficha-card" style="margin-top:1rem;">
+
+                <h3>Comprobantes emitidos</h3>
+
+                <table class="abonados-table">
+
+                    <thead><tr><th>Tipo</th><th>Serie-Número</th><th>Monto</th><th>RUC emisor</th><th>Fecha</th><th>Acción</th></tr></thead>
+
+                    <tbody>
+
+                        {% for c in comprobantes %}
+
+                        <tr>
+
+                            <td>{{ c.tipo }}</td>
+
+                            <td>{{ c.serie }}-{{ c.correlativo }}</td>
+
+                            <td>S/ {{ c.monto_total|floatformat:2 }}</td>
+
+                            <td>{{ c.ruc_emisor }}</td>
+
+                            <td>{{ c.fecha_emision|date:"d/m/Y H:i" }}</td>
+
+                            <td>
+                                {% if c.preview_url %}
+                                <a href="{{ c.preview_url }}" target="_blank" class="abonados-btn abonados-btn-ghost btn-ver-comprobante" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.25rem;">
+                                    <i class="fa-solid fa-file-invoice"></i> Ver Comprobante
+                                </a>
+                                {% endif %}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% endif %}
+
+
+        </main>
+
+    </div>
+
+<!-- Modal Comparar Liquidación y Fotos -->
+<div id="modal-comparar-liquidacion" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); backdrop-filter:blur(5px); z-index:1050; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--radius-lg); max-width:950px; width:95%; max-height:90vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,0.5); display:flex; flex-direction:column; border:1px solid var(--border-color);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; border-bottom:1px solid var(--border-color); padding-bottom:0.75rem;">
+            <h3 id="comp-title" style="margin:0; font-size:1.3rem; color:var(--text-color); display:flex; align-items:center; gap:0.5rem;"><i class="fa-solid fa-code-compare" style="color:var(--primary-color);"></i> Comparar Equipos y Materiales</h3>
+            <button type="button" class="modal-close-btn" style="background:none; border:none; font-size:1.8rem; cursor:pointer; color:var(--text-muted); line-height:1;">&times;</button>
+        </div>
+        <div class="comparar-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; min-height:0; overflow-y:auto;">
+            <!-- Columna Izquierda: Lo que Tiene vs Lo Retirado -->
+            <div style="display:flex; flex-direction:column; gap:1rem; height:100%;">
+                <!-- Bloque 1: Lo que tiene el cliente (Instalado/Usado) -->
+                <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.3); padding:1.25rem; border-radius:var(--radius-md); flex:1; display:flex; flex-direction:column; gap:0.5rem;">
+                    <h4 style="margin:0; color:#10b981; text-align:left; display:flex; align-items:center; gap:0.5rem; font-size:1.05rem; border-bottom:1px solid rgba(16,185,129,0.2); padding-bottom:0.5rem;">
+                        <i class="fa-solid fa-circle-check"></i> LO QUE TIENE (Instalado/Usado)
+                    </h4>
+                    <div id="comp-materiales-usados" style="font-size:0.88rem; line-height:1.6; color:var(--text-color); text-align:left; padding:0.25rem 0;">—</div>
+                </div>
+
+                <!-- Bloque 2: Lo retirado -->
+                <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); padding:1.25rem; border-radius:var(--radius-md); flex:1; display:flex; flex-direction:column; gap:0.5rem;">
+                    <h4 style="margin:0; color:#ef4444; text-align:left; display:flex; align-items:center; gap:0.5rem; font-size:1.05rem; border-bottom:1px solid rgba(239,68,68,0.2); padding-bottom:0.5rem;">
+                        <i class="fa-solid fa-circle-minus"></i> LO RETIRADO (Retiros)
+                    </h4>
+                    <div id="comp-materiales-retirados" style="font-size:0.88rem; line-height:1.6; color:var(--text-color); text-align:left; padding:0.25rem 0;">—</div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Evidencias Fotográficas con Selector -->
+            <div style="display:flex; flex-direction:column; gap:0.75rem; background:var(--bg-surface-active); border:1px solid var(--border-color); padding:1.25rem; border-radius:var(--radius-md); text-align:center; height:100%; min-height:400px; justify-content:space-between;">
+                <h4 style="margin:0; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem; width:100%; text-align:left; color:var(--primary-color); display:flex; align-items:center; gap:0.5rem; font-size:1.05rem;">
+                    <i class="fa-solid fa-camera"></i> Evidencia Fotográfica
+                </h4>
+                
+                <!-- Visor Principal con Flechas de Navegación -->
+                <div id="comp-viewer-wrapper" style="position:relative; width:100%; flex-grow:1; display:flex; align-items:center; justify-content:center; background:var(--bg-surface); min-height:300px; max-height:400px; border:1px solid var(--border-color); border-radius:var(--radius-sm); overflow:hidden;">
+                    <div id="comp-img-container" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; padding:0.5rem;">
+                        <span style="color:var(--text-muted); font-size:0.9rem;">Cargando evidencia...</span>
+                    </div>
+                    
+                    <!-- Botones de Navegación (Flechas) -->
+                    <button type="button" id="comp-prev-btn" class="comp-nav-btn" style="display:none; position:absolute; left:10px; top:50%; transform:translateY(-50%); background:rgba(0,0,0,0.55); color:#fff; border:none; border-radius:50%; width:36px; height:36px; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; z-index:10; box-shadow:0 2px 5px rgba(0,0,0,0.3);" onmouseover="this.style.background='var(--primary-color)'; this.style.transform='translateY(-50%) scale(1.08)';" onmouseout="this.style.background='rgba(0,0,0,0.55)'; this.style.transform='translateY(-50%) scale(1)';">
+                        <i class="fa-solid fa-chevron-left" style="font-size:1rem;"></i>
+                    </button>
+                    <button type="button" id="comp-next-btn" class="comp-nav-btn" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); background:rgba(0,0,0,0.55); color:#fff; border:none; border-radius:50%; width:36px; height:36px; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; z-index:10; box-shadow:0 2px 5px rgba(0,0,0,0.3);" onmouseover="this.style.background='var(--primary-color)'; this.style.transform='translateY(-50%) scale(1.08)';" onmouseout="this.style.background='rgba(0,0,0,0.55)'; this.style.transform='translateY(-50%) scale(1)';">
+                        <i class="fa-solid fa-chevron-right" style="font-size:1rem;"></i>
+                    </button>
+                </div>
+
+                <!-- Selector de Miniaturas ( thumbnails ) -->
+                <div id="comp-thumbnails-box" style="display:none; flex-direction:column; gap:0.35rem; width:100%;">
+                    <div style="font-size:0.72rem; color:var(--text-muted); text-align:left; font-weight:600; text-transform:uppercase;">Seleccionar Imagen (<span id="comp-thumbnail-count">0</span>):</div>
+                    <div id="comp-thumbnails-container" style="display:flex; gap:0.5rem; overflow-x:auto; padding:0.25rem 0; width:100%; scrollbar-width:thin;">
+                        <!-- Miniaturas se inyectarán dinámicamente aquí -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer del Modal para Datos Auxiliares e Historial -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem; border-top:1px solid var(--border-color); padding-top:1rem; flex-wrap:wrap; gap:1rem;">
+            <div id="comp-info-footer" style="font-size:0.75rem; color:var(--text-muted); text-align:left; display:flex; gap:1.25rem;">
+                <div><strong>Liquidado por:</strong> <span id="comp-usuario-liq">—</span></div>
+                <div><strong>Técnicos:</strong> <span id="comp-tecnicos-footer">—</span></div>
+                <div><strong>Fecha:</strong> <span id="comp-fecha-footer">—</span></div>
+            </div>
+            <button type="button" class="abonados-btn abonados-btn-ghost modal-close-btn" style="padding:0.5rem 1.5rem; font-size:0.9rem;">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'global/js/theme_controller.js' %}"></script>
+
+<script src="{% static 'js/organizacion/image-compressor.js' %}"></script>
+
+<script src="{% static 'js/global/ticket-simple.js' %}"></script>
+
+<script src="{% static 'js/abonados/ficha-cliente.js' %}?v={% now 'U' %}"></script>
+
+</body>
+
+</html>
+

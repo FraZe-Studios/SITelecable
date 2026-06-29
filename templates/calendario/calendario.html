@@ -1,0 +1,442 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Operativo | SIT Telecable</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Global CSS -->
+    <link rel="stylesheet" href="{% static 'global/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/componentes.css' %}">
+    
+    <!-- FullCalendar 6.1.11 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales/es.global.min.js"></script>
+    
+    <style>
+        .calendar-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            height: calc(100vh - 4rem);
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sidebar del Calendario */
+        .calendar-sidebar {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            overflow-y: auto;
+        }
+
+        .sidebar-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.4rem;
+        }
+
+        /* Botones de Control de Modo */
+        .mode-selector {
+            display: flex;
+            background: var(--bg-surface-active);
+            padding: 0.25rem;
+            border-radius: 10px;
+            gap: 0.25rem;
+        }
+
+        .mode-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 0.55rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.3rem;
+        }
+
+        .mode-btn.active {
+            background: var(--bg-surface);
+            color: var(--text-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        }
+
+        /* Subfiltros Clientes */
+        .client-subfilters {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .subfilter-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem;
+            border-radius: 8px;
+            background: var(--bg-surface-active);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .subfilter-option:hover {
+            border-color: var(--border-color);
+        }
+
+        .subfilter-option.active {
+            background: rgba(30, 58, 138, 0.05);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* Pool de Tickets Sin Programar */
+        .ticket-pool {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex-grow: 1;
+            overflow-y: auto;
+            min-height: 200px;
+            padding-right: 0.25rem;
+        }
+
+        .draggable-ticket {
+            background: var(--bg-surface-active);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.75rem;
+            cursor: grab;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
+        }
+
+        .draggable-ticket:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .draggable-ticket:active {
+            cursor: grabbing;
+        }
+
+        .ticket-badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            margin-bottom: 0.35rem;
+        }
+
+        .badge-alta { background: #fee2e2; color: #ef4444; }
+        .badge-media { background: #fef3c7; color: #d97706; }
+        .badge-baja { background: #d1fae5; color: #10b981; }
+
+        .ticket-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .ticket-client {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Calendario Principal */
+        .calendar-main {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Estilos Personalizados para FullCalendar */
+        .fc {
+            font-family: inherit;
+            height: 100%;
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1.25rem !important;
+            font-weight: 800;
+            color: var(--text-color);
+        }
+
+        .fc .fc-button-primary {
+            background-color: var(--bg-surface-active) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-color) !important;
+            font-weight: 600;
+            text-transform: capitalize;
+            border-radius: 8px !important;
+            padding: 0.45rem 0.8rem !important;
+            transition: all 0.2s;
+        }
+
+        .fc .fc-button-primary:hover {
+            background-color: var(--border-color) !important;
+        }
+
+        .fc .fc-button-primary:focus {
+            box-shadow: none !important;
+        }
+
+        .fc .fc-button-active {
+            background-color: var(--primary-color) !important;
+            color: #fff !important;
+            border-color: var(--primary-color) !important;
+        }
+
+        .fc-theme-standard td, .fc-theme-standard th {
+            border: 1px solid var(--border-color) !important;
+        }
+
+        .fc-col-header-cell-cushion {
+            padding: 8px 4px !important;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .fc-daygrid-day-number {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 6px !important;
+        }
+
+        .fc-daygrid-day.fc-day-today {
+            background-color: rgba(30, 58, 138, 0.03) !important;
+        }
+
+        /* Estilos de Eventos */
+        .fc-event {
+            border-radius: 6px !important;
+            padding: 2px 4px !important;
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            border: none !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+
+        .fc-event:hover {
+            transform: scale(1.02);
+            filter: brightness(0.95);
+        }
+
+        /* Modal */
+        .calendar-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .calendar-modal.active {
+            display: flex;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .calendar-modal-content {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            padding: 1.5rem;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        .calendar-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.25rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.6rem 0;
+            border-bottom: 1px dashed var(--border-color);
+            font-size: 0.875rem;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            color: var(--text-color);
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        {% include "global/navbar.html" %}
+        
+        <div class="app-wrapper">
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <div class="calendar-container">
+                
+                <!-- Barra Lateral de Filtros y Pool -->
+                <aside class="calendar-sidebar">
+                    <div>
+                        <h2 style="font-size: 1.2rem; font-weight: 800; margin: 0 0 0.25rem 0; color: var(--text-color);">Calendario</h2>
+                        <p style="color: var(--text-muted); margin: 0; font-size: 0.8rem;">Filtros y programación rápida</p>
+                    </div>
+
+                    <!-- Modo Principal -->
+                    <div class="mode-selector">
+                        <button class="mode-btn active" id="mode-tickets" onclick="changeMode('tickets')">
+                            🔧 Tickets
+                        </button>
+                        <button class="mode-btn" id="mode-clientes" onclick="changeMode('clientes')">
+                            👥 Clientes
+                        </button>
+                    </div>
+
+                    <!-- Subfiltros Clientes (Se muestra solo si modo === clientes) -->
+                    <div id="client-filters-container" style="display: none;">
+                        <div class="sidebar-section-title">Filtros de Cliente</div>
+                        <div class="client-subfilters">
+                            <div class="subfilter-option active" id="sub-instalaciones" onclick="changeClientSubfilter('instalaciones')">
+                                🟢 Instalaciones Recientes
+                            </div>
+                            <div class="subfilter-option" id="sub-pagos" onclick="changeClientSubfilter('pagos')">
+                                🔴 Vencimientos de Pago
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tickets por Programar (Se muestra solo si modo === tickets) -->
+                    <div id="ticket-pool-container" style="display: flex; flex-direction: column; flex-grow: 1; overflow: hidden;">
+                        <div class="sidebar-section-title">Tickets por Programar</div>
+                        <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 0.75rem 0;">Arrastra un ticket al calendario para asignarle fecha y hora.</p>
+                        <div class="ticket-pool" id="unscheduled-tickets-list">
+                            <!-- Rellenado por JS -->
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Calendario -->
+                <section class="calendar-main">
+                    <div id="calendar"></div>
+                </section>
+
+            </div>
+        </main>
+        </div>
+    </div>
+
+    <!-- Modal Detalle Evento -->
+    <div class="calendar-modal" id="modal-detalle-evento">
+        <div class="calendar-modal-content">
+            <button class="calendar-modal-close" onclick="closeModal()">×</button>
+            <h3 id="modal-title" style="margin:0 0 1.25rem 0;font-size:1.15rem;font-weight:700;">Detalle del Evento</h3>
+            <div id="modal-body">
+                <!-- Rellenado por JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Si no existe SITAlert localmente para pruebas, crear fallback inerte
+        if (typeof window.SITAlert === 'undefined') {
+            window.SITAlert = {
+                show: function(message, type) {
+                    const banner = document.createElement('div');
+                    banner.style.position = 'fixed';
+                    banner.style.bottom = '20px';
+                    banner.style.right = '20px';
+                    banner.style.padding = '10px 20px';
+                    banner.style.borderRadius = '8px';
+                    banner.style.color = '#fff';
+                    banner.style.zIndex = '9999';
+                    banner.style.fontFamily = 'Outfit, sans-serif';
+                    banner.style.fontSize = '0.9rem';
+                    banner.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                    banner.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#f59e0b';
+                    banner.textContent = message;
+                    document.body.appendChild(banner);
+                    setTimeout(() => banner.remove(), 4000);
+                }
+            };
+        }
+    </script>
+    <script src="{% static 'js/calendario/calendario.js' %}"></script>
+</body>
+</html>

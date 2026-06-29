@@ -1,0 +1,296 @@
+<!-- templates/organizacion/sede/rucs.html -->
+<div id="sedeTabRucs" style="display:none;">
+    <div class="config-split-view">
+        <!-- RUCs vinculados -->
+        <div>
+            <div class="config-card" style="margin-bottom:1.5rem;">
+                <div class="config-card-title">
+                    RUCs y Facturación
+                    <button class="config-btn-add" style="padding:0.25rem 0.6rem; font-size:0.72rem;" id="btnShowAddRuc" title="Vincular RUC a la sede">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;margin-right:4px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> Vincular RUC
+                    </button>
+                </div>
+                
+                <form id="sedeRucForm" style="display:none; background:var(--bg-surface); border:1px solid var(--border-color); border-radius:6px; padding:1rem; margin-bottom:1rem;">
+                    <input type="hidden" name="action_type" id="rucFormActionType" value="vincular">
+                    <div class="config-form-group">
+                        <label>RUC Global</label>
+                        <select class="config-form-input" name="ruc_id" id="rucFormSelect" required>
+                        </select>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:0.75rem;">
+                        <label class="config-checkbox-group">
+                            <input type="checkbox" name="permite_boleta" checked>
+                            <span>Boleta</span>
+                        </label>
+                        <label class="config-checkbox-group">
+                            <input type="checkbox" name="permite_factura" checked>
+                            <span>Factura</span>
+                        </label>
+                        <label class="config-checkbox-group">
+                            <input type="checkbox" name="permite_nota_venta" checked>
+                            <span>Nota Venta</span>
+                        </label>
+                    </div>
+                    <div class="config-form-group">
+                        <label>Formato de Impresión</label>
+                        <select class="config-form-input" name="formato_impresion">
+                            <option value="A4">A4 (Estándar)</option>
+                            <option value="TICKET">Ticket (Termal 80mm)</option>
+                        </select>
+                    </div>
+                    <div class="config-form-group">
+                        <label>Logotipo del RUC para Sede (URL opcional)</label>
+                        <input type="text" class="config-form-input" name="logo_url" placeholder="https://example.com/logo.png">
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+                        <button type="button" class="config-btn-secondary" id="btnCancelRucForm" title="Cancelar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Cancelar</button>
+                        <button type="submit" class="config-btn-save" title="Guardar Configuración"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Guardar Config</button>
+                    </div>
+                </form>
+
+                <div style="overflow-x:auto;">
+                    <table class="config-table">
+                        <thead>
+                            <tr>
+                                <th>RUC</th>
+                                <th>Razón Social</th>
+                                <th>Tipos</th>
+                                <th>Formato</th>
+                                <th>Logo</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="rucsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contrato de adhesión -->
+        <div>
+            <div class="config-card">
+                <div class="config-card-title">Contrato Legal de Adhesión</div>
+                <form id="sedeContratoForm">
+                    <div class="config-form-group">
+                        <label>Título del Contrato</label>
+                        <input type="text" class="config-form-input" name="titulo" id="contratoTitulo" required>
+                    </div>
+                    <div class="config-form-group">
+                        <label>Introducción Legal / Encabezado</label>
+                        <textarea class="config-form-input" name="introduccion" id="contratoIntroduccion" rows="3" style="resize:vertical;"></textarea>
+                    </div>
+                    <div class="config-form-group">
+                        <label>Cláusulas del Contrato</label>
+                        <textarea class="config-form-input" name="clausulas" id="contratoClausulas" rows="5" style="resize:vertical;"></textarea>
+                    </div>
+                    <div class="config-form-group">
+                        <label>RUC de Facturación Predeterminado</label>
+                        <select class="config-form-input" name="ruc_facturacion_id" id="contratoRucFacturacionSelect">
+                        </select>
+                    </div>
+                    <div class="config-form-group">
+                        <label>Ruta de Plantilla PDF Asociada</label>
+                        <input type="text" class="config-form-input" name="pdf_template_path" id="contratoPdfTemplatePath" placeholder="Ej: templates/pdf/contrato_sede.html">
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div class="config-form-group">
+                            <label>Velocidad Mínima Garantizada (%)</label>
+                            <input type="number" class="config-form-input" name="velocidad_garantizada" id="contratoVelocidadGarantizada" required>
+                        </div>
+                        <div class="config-form-group">
+                            <label>Plazo Atención Averías (Horas)</label>
+                            <input type="number" class="config-form-input" name="plazo_atencion_horas" id="contratoPlazoAtencionHoras" required>
+                        </div>
+                    </div>
+                    <div class="config-form-group">
+                        <label>Costo de Reconexión del Servicio (S/.)</label>
+                        <input type="number" step="0.01" class="config-form-input" name="costo_reconexion" id="contratoCostoReconexion" required>
+                    </div>
+                    <div style="text-align:right; margin-top:1.5rem;">
+                        <button type="submit" class="config-btn-save" title="Guardar Contrato Legal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Guardar Contrato
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    window.renderSedeTabRucs = function() {
+        // Render linked RUCs table
+        const tbody = document.getElementById('rucsTableBody');
+        let rucRows = '';
+        window.currentSedeConfigData.rucs.forEach(r => {
+            rucRows += `
+                <tr>
+                    <td><strong>${r.numero_ruc}</strong></td>
+                    <td>${r.razon_social}</td>
+                    <td>
+                        <div style="display:flex; flex-direction:column; gap:2px; font-size:0.75rem;">
+                            <span>Boletas: ${r.permite_boleta ? 'SI' : 'NO'}</span>
+                            <span>Facturas: ${r.permite_factura ? 'SI' : 'NO'}</span>
+                            <span>Nota Venta: ${r.permite_nota_venta ? 'SI' : 'NO'}</span>
+                        </div>
+                    </td>
+                    <td><span class="config-badge config-badge-info">${r.formato_impresion}</span></td>
+                    <td>
+                        ${r.logo_url_sede ? `<img src="${r.logo_url_sede}" style="max-height:24px; max-width:80px; object-fit:contain; border:1px solid var(--border-color); border-radius:3px;">` : '<span style="color:var(--text-muted); font-size:0.7rem;">Por defecto</span>'}
+                    </td>
+                    <td style="text-align:right;">
+                        <button class="config-btn-icon" onclick="window.editarSedeRuc(${r.ruc_id})" title="Editar Configuración"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                        <button class="config-btn-icon config-btn-icon-danger" onclick="window.desvincularSedeRuc(${r.ruc_id})" title="Desvincular RUC"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg></button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = rucRows || `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:1.5rem;">Esta sede no tiene RUCs vinculados.</td></tr>`;
+
+        // Populate RUC global selection
+        const selectGlobal = document.getElementById('rucFormSelect');
+        let globalOpts = '<option value="">-- Seleccionar RUC --</option>';
+        window.currentSedeConfigData.todos_rucs.forEach(r => {
+            globalOpts += `<option value="${r.id}">${r.numero_ruc} - ${r.razon_social}</option>`;
+        });
+        selectGlobal.innerHTML = globalOpts;
+
+        // Populate Contrato legal form
+        const ct = window.currentSedeConfigData.contrato || {
+            titulo: 'Contrato de Adhesión',
+            introduccion: '',
+            clausulas: '',
+            pdf_template_path: '',
+            velocidad_garantizada: 70,
+            plazo_atencion_horas: 48,
+            costo_reconexion: 15,
+            ruc_facturacion_id: ''
+        };
+
+        document.getElementById('contratoTitulo').value = ct.titulo;
+        document.getElementById('contratoIntroduccion').value = ct.introduccion || '';
+        document.getElementById('contratoClausulas').value = ct.clausulas || '';
+        document.getElementById('contratoPdfTemplatePath').value = ct.pdf_template_path || '';
+        document.getElementById('contratoVelocidadGarantizada').value = ct.velocidad_garantizada;
+        document.getElementById('contratoPlazoAtencionHoras').value = ct.plazo_atencion_horas;
+        document.getElementById('contratoCostoReconexion').value = ct.costo_reconexion;
+
+        const selectBillingRuc = document.getElementById('contratoRucFacturacionSelect');
+        let billingOpts = '<option value="">-- Seleccionar RUC de Facturación --</option>';
+        window.currentSedeConfigData.rucs.forEach(r => {
+            const sel = r.ruc_id == ct.ruc_facturacion_id ? 'selected' : '';
+            billingOpts += `<option value="${r.ruc_id}" ${sel}>RUC: ${r.numero_ruc}</option>`;
+        });
+        selectBillingRuc.innerHTML = billingOpts;
+
+        // Show container
+        document.getElementById('sedeTabRucs').style.display = 'block';
+    };
+
+    // Form show/hide
+    const btnShow = document.getElementById('btnShowAddRuc');
+    const form = document.getElementById('sedeRucForm');
+    const select = document.getElementById('rucFormSelect');
+    const actType = document.getElementById('rucFormActionType');
+
+    btnShow?.addEventListener('click', () => {
+        actType.value = 'vincular';
+        select.disabled = false;
+        form.reset();
+        form.style.display = 'block';
+    });
+    
+    document.getElementById('btnCancelRucForm')?.addEventListener('click', () => {
+        form.style.display = 'none';
+    });
+
+    window.editarSedeRuc = (rucId) => {
+        const r = window.currentSedeConfigData.rucs.find(item => item.ruc_id == rucId);
+        if (r) {
+            actType.value = 'editar';
+            select.value = rucId;
+            select.disabled = true;
+            form.querySelector('[name="permite_boleta"]').checked = r.permite_boleta;
+            form.querySelector('[name="permite_factura"]').checked = r.permite_factura;
+            form.querySelector('[name="permite_nota_venta"]').checked = r.permite_nota_venta;
+            form.querySelector('[name="formato_impresion"]').value = r.formato_impresion;
+            form.querySelector('[name="logo_url"]').value = r.logo_url_sede || '';
+            form.style.display = 'block';
+        }
+    };
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const data = {
+            sede_id: window.currentSedeId,
+            ruc_id: select.value,
+            permite_boleta: fd.get('permite_boleta') !== null,
+            permite_factura: fd.get('permite_factura') !== null,
+            permite_nota_venta: fd.get('permite_nota_venta') !== null,
+            formato_impresion: fd.get('formato_impresion'),
+            logo_url: fd.get('logo_url')
+        };
+
+        try {
+            const resp = await fetch('/api/sede/config/ruc/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.getCookie('csrftoken') },
+                body: JSON.stringify(data)
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                window.openSedeConfig(window.currentSedeId, 'rucs');
+                alert('Configuración de RUC guardada.');
+            } else alert(`Error: ${res.message}`);
+        } catch (err) { alert('Error al guardar vinculación de RUC.'); }
+    });
+
+    window.desvincularSedeRuc = async (rucId) => {
+        if (!confirm('¿Desvincular RUC de la sede?')) return;
+        try {
+            const resp = await fetch('/api/sede/config/ruc/desvincular/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.getCookie('csrftoken') },
+                body: JSON.stringify({ sede_id: window.currentSedeId, ruc_id: rucId })
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                window.openSedeConfig(window.currentSedeId, 'rucs');
+            } else alert(`Error: ${res.message}`);
+        } catch(e) { alert('Error de conexión.'); }
+    };
+
+    document.getElementById('sedeContratoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const data = {
+            sede_id: window.currentSedeId,
+            titulo: fd.get('titulo'),
+            introduccion: fd.get('introduccion'),
+            clausulas: fd.get('clausulas'),
+            ruc_facturacion_id: fd.get('ruc_facturacion_id'),
+            pdf_template_path: fd.get('pdf_template_path'),
+            velocidad_garantizada: fd.get('velocidad_garantizada'),
+            plazo_atencion_horas: fd.get('plazo_atencion_horas'),
+            costo_reconexion: fd.get('costo_reconexion')
+        };
+
+        try {
+            const resp = await fetch('/api/sede/config/contrato/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.getCookie('csrftoken') },
+                body: JSON.stringify(data)
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                window.openSedeConfig(window.currentSedeId, 'rucs');
+                alert('Contrato legal actualizado.');
+            } else alert(`Error: ${res.message}`);
+        } catch (err) { alert('Error al guardar contrato.'); }
+    });
+})();
+</script>

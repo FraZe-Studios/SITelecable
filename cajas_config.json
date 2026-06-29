@@ -1,0 +1,10 @@
+{
+    "2": {
+        "efectivo": false,
+        "transferencia": true
+    },
+    "1": {
+        "efectivo": true,
+        "transferencia": false
+    }
+}

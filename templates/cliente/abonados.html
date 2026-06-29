@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abonados | SIT Telecable</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'global/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/abonados.css' %}">
+</head>
+<body>
+<div class="app-container">
+    {% include "global/navbar.html" %}
+
+    <div class="app-wrapper">
+        <main class="main-content abonados-page" id="abonadosApp"
+              data-ctx-vendedor='{{ ctx_vendedor_json|escapejs }}'>
+
+            <div class="abonados-table-card">
+                <form method="GET" class="ab-search-bar">
+                    {% if request.GET.estado %}<input type="hidden" name="estado" value="{{ request.GET.estado }}">{% endif %}
+                    {% if request.GET.sede %}<input type="hidden" name="sede" value="{{ request.GET.sede }}">{% endif %}
+                    {% if request.GET.paginate_by %}<input type="hidden" name="paginate_by" value="{{ request.GET.paginate_by }}">{% endif %}
+                    <input type="text" name="q" class="ab-search-input" placeholder="Buscar por DNI, RUC, código, nombre o celular..." value="{{ request.GET.q|default:'' }}">
+                    <button type="submit" class="abonados-btn abonados-btn-ghost"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+                </form>
+
+                <div class="abonados-toolbar">
+                    <div class="abonados-toolbar-left">
+                        <form method="GET" class="abonados-toolbar-form">
+                            {% if request.GET.paginate_by %}<input type="hidden" name="paginate_by" value="{{ request.GET.paginate_by }}">{% endif %}
+                            {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+
+                            <div class="abonados-filter-group">
+                                <label class="abonados-label">Estado:</label>
+                                <select name="estado" onchange="this.form.submit()" class="abonados-select">
+                                    <option value="">TODOS</option>
+                                    <option value="ACTIVO" {% if request.GET.estado == 'ACTIVO' %}selected{% endif %}>ACTIVOS</option>
+                                    <option value="MORA" {% if request.GET.estado == 'MORA' %}selected{% endif %}>EN MORA</option>
+                                    <option value="CORTE" {% if request.GET.estado == 'CORTE' %}selected{% endif %}>CORTADOS</option>
+                                    <option value="PENDIENTE" {% if request.GET.estado == 'PENDIENTE' %}selected{% endif %}>PENDIENTES</option>
+                                </select>
+                            </div>
+
+                            <div class="abonados-filter-group">
+                                <label class="abonados-label">Sector:</label>
+                                <select name="sede" onchange="this.form.submit()" class="abonados-select">
+                                    <option value="">TODAS LAS SEDES</option>
+                                    {% for s in sedes_list %}
+                                    <option value="{{ s.id }}" {% if request.GET.sede == s.id|stringformat:"i" %}selected{% endif %}>{{ s.nombre|upper }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </form>
+
+                        <div class="abonados-filter-group">
+                            <label class="abonados-label">Ver:</label>
+                            <select onchange="location.href='?paginate_by='+this.value+'{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}{% if request.GET.sede %}&sede={{ request.GET.sede }}{% endif %}'" class="abonados-select">
+                                <option value="50" {% if request.GET.paginate_by == '50' or not request.GET.paginate_by %}selected{% endif %}>50</option>
+                                <option value="100" {% if request.GET.paginate_by == '100' %}selected{% endif %}>100</option>
+                                <option value="200" {% if request.GET.paginate_by == '200' %}selected{% endif %}>200</option>
+                            </select>
+                        </div>
+
+                        <div class="abonados-actions">
+                            <button type="button" id="btnTicketPlanta" class="abonados-btn abonados-btn-ticket" title="Ticket masivo planta externa">
+                                <i class="fa-solid fa-tower-broadcast"></i> TICKET
+                            </button>
+                            <button type="button" id="btnNuevoAbonado" class="abonados-btn abonados-btn-new" title="Nuevo abonado">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="abonados-counter">
+                        MOSTRANDO <span>{{ page_obj.start_index }}-{{ page_obj.end_index }}</span> DE {{ paginator.count }}
+                    </div>
+                </div>
+
+                <table class="abonados-table">
+                    <thead>
+                        <tr>
+                            <th>CÓDIGO</th>
+                            <th>ABONADO / DIRECCIÓN</th>
+                            <th>PENDIENTES</th>
+                            <th>DOCUMENTO</th>
+                            <th>SECTOR</th>
+                            <th>ESTADO</th>
+                            <th>ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes %}
+                        <tr>
+                            <td class="ab-code">{{ cliente.codigo_cliente }}</td>
+                            <td>
+                                <div class="ab-name">{{ cliente.razon_social }}</div>
+                                <div class="ab-address">{{ cliente.direccion_fiscal|truncatechars:60 }}</div>
+                            </td>
+                            <td>
+                                <div class="ab-pending-list">
+                                    {% for t in cliente.pending_tickets %}
+                                    {% if t.area == 'planta_externa' %}
+                                    <a href="{% url 'abonado_ficha' cliente.pk %}?tab=campo&jump=T{{ t.id }}&suscripcion={{ t.servicio_id }}" class="ab-pending-badge ticket campo" title="Ticket Campo #{{ t.id }}">
+                                        <i class="fa-solid fa-person-digging"></i> {{ t.catalogo_nombre|default:t.tipo_ticket }} T{{ t.id }}
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'abonado_ficha' cliente.pk %}?tab=remoto&jump=T{{ t.id }}&suscripcion={{ t.servicio_id }}" class="ab-pending-badge ticket" title="Ticket Remoto #{{ t.id }}">
+                                        <i class="fa-solid fa-headset"></i> {{ t.catalogo_nombre|default:t.tipo_ticket }} T{{ t.id }}
+                                    </a>
+                                    {% endif %}
+                                    {% empty %}
+                                    <span class="ab-address">—</span>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>{{ cliente.dni_ruc }}</td>
+                            <td><span class="ab-sede-tag">{{ cliente.sede_nombre|upper }}</span></td>
+                            <td><span class="ab-status ab-status-{{ cliente.estado_comercial|lower }}">{{ cliente.estado_comercial }}</span></td>
+                            <td>
+                                <a href="{% url 'abonado_ficha' cliente.pk %}" class="abonados-btn abonados-btn-ghost" title="Ver ficha"><i class="fa-solid fa-eye"></i></a>
+                                <button type="button" class="abonados-btn abonados-btn-ghost btn-editar-abonado" data-pk="{{ cliente.pk }}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No hay abonados registrados.</td></tr>
+                        {% endfor %}
+
+                        {% if api_result %}
+                        <tr class="ab-row-api">
+                            <td class="ab-code">NUEVO</td>
+                            <td>
+                                <div class="ab-name">{{ api_result.nombre|upper }}</div>
+                                <div class="ab-address">Obtenido vía API ({{ api_result.source }})</div>
+                            </td>
+                            <td><span class="ab-address">Por registrar</span></td>
+                            <td style="font-weight:700;">{{ api_result.documento }}</td>
+                            <td><span class="ab-sede-tag">S/A</span></td>
+                            <td><span class="ab-status ab-status-pendiente">NO REGISTRADO</span></td>
+                            <td>
+                                <button type="button" class="abonados-btn abonados-btn-new btn-agregar-api"
+                                    data-documento="{{ api_result.documento }}"
+                                    data-nombre="{{ api_result.nombre }}"
+                                    data-direccion="{{ api_result.direccion }}"
+                                    data-fecha_nacimiento="{{ api_result.fecha_nacimiento }}"
+                                    data-estado_civil="{{ api_result.estado_civil }}"
+                                    data-ubigeo="{{ api_result.ubigeo }}"
+                                    data-restricciones="{{ api_result.restricciones_notificacion }}"
+                                    data-source="{{ api_result.source }}">
+                                    <i class="fa-solid fa-plus"></i> AGREGAR
+                                </button>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+
+                {% if page_obj.has_other_pages %}
+                <div class="ab-pagination">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}{% if request.GET.sede %}&sede={{ request.GET.sede }}{% endif %}{% if request.GET.paginate_by %}&paginate_by={{ request.GET.paginate_by }}{% endif %}">«</a>
+                    {% endif %}
+                    <span class="active">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}{% if request.GET.sede %}&sede={{ request.GET.sede }}{% endif %}{% if request.GET.paginate_by %}&paginate_by={{ request.GET.paginate_by }}{% endif %}">»</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</div>
+
+{% include "cliente/components/modal_registro.html" %}
+
+<!-- Modal Ticket Masivo Planta Externa -->
+<div class="ab-modal-overlay" id="modalTicketPlanta" aria-hidden="true">
+    <div class="ab-modal" role="dialog" aria-labelledby="modalTicketPlantaTitle" style="max-width: 550px;">
+        <div class="ab-modal-header">
+            <div>
+                <div class="abonados-label">Infraestructura</div>
+                <div class="ab-modal-title" id="modalTicketPlantaTitle">TICKET MASIVO PLANTA EXTERNA</div>
+            </div>
+            <button type="button" class="abonados-btn abonados-btn-ghost" id="btnCerrarModalTicketPlanta" aria-label="Cerrar">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <form id="formTicketPlanta">
+            <div class="ab-modal-body">
+                <div class="ab-form-grid">
+                    <div class="ab-field">
+                        <label>Sede / Sector</label>
+                        <select id="ticket-planta-sede" name="sede_id" class="abonados-select" required>
+                            <option value="">— Seleccione Sede —</option>
+                            {% for s in sedes_list %}
+                            <option value="{{ s.id }}">{{ s.nombre|upper }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="ab-field">
+                        <label>Tipo Elemento</label>
+                        <select id="ticket-planta-tipo-elemento" name="tipo_elemento" class="abonados-select" required>
+                            <option value="">— Seleccione Tipo —</option>
+                            <option value="NAP">Caja NAP</option>
+                            <option value="MUFA">Mufa</option>
+                            <option value="GENERAL">General (Sede)</option>
+                        </select>
+                    </div>
+
+                    <div class="ab-field full" id="ticket-planta-elemento-container" style="display: none;">
+                        <label id="ticket-planta-elemento-label">Elemento Afectado</label>
+                        <select id="ticket-planta-elemento" name="elemento_id" class="abonados-select" style="width: 100%;">
+                            <option value="">— Seleccione Elemento —</option>
+                        </select>
+                    </div>
+
+                    <div class="ab-field full" id="ticket-planta-referencia-container" style="display: none;">
+                        <label>Referencia de Ubicación / Poste</label>
+                        <input type="text" id="ticket-planta-referencia" name="referencia_ubicacion" class="ab-search-input" placeholder="Ej: Poste 23, Calle Lima Nro 3">
+                    </div>
+
+                    <div class="ab-field">
+                        <label>Modalidad</label>
+                        <select id="ticket-planta-filter-modalidad" class="abonados-select">
+                            <option value="">— Seleccione —</option>
+                        </select>
+                    </div>
+
+                    <div class="ab-field">
+                        <label>Categoría</label>
+                        <select id="ticket-planta-filter-categoria" class="abonados-select">
+                            <option value="">— Seleccione —</option>
+                        </select>
+                    </div>
+
+                    <div class="ab-field full">
+                        <label>Tipo de Ticket (Catálogo)</label>
+                        <select id="ticket-planta-catalogo" name="catalogo_ticket_id" class="abonados-select" required>
+                            <option value="">— Seleccione Tipo de Ticket —</option>
+                        </select>
+                    </div>
+
+                    <div class="ab-field full">
+                        <label>Motivo / Descripción del Problema</label>
+                        <textarea id="ticket-planta-motivo" name="motivo" rows="3" placeholder="Descripción de la incidencia masiva..." style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.75rem; padding: 0.4rem 0.55rem; font-family: inherit;" required></textarea>
+                    </div>
+
+                    <div class="ab-check-row full" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <input type="checkbox" id="ticket-planta-afectar" name="afectar_abonados" checked required style="width: auto;">
+                        <label for="ticket-planta-afectar" style="font-size: 0.68rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; cursor: pointer;">
+                            Afectar abonados (tickets individuales para clientes activos)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="ab-modal-footer">
+                <button type="button" class="abonados-btn abonados-btn-ghost" id="btnCancelarTicketPlanta">Cancelar</button>
+                <button type="submit" class="abonados-btn abonados-btn-ticket" id="btnEnviarTicketPlanta">
+                    <i class="fa-solid fa-paper-plane"></i> Generar Tickets
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="{% static 'global/js/theme_controller.js' %}"></script>
+<script src="{% static 'js/organizacion/image-compressor.js' %}"></script>
+<script src="{% static 'js/abonados/abonados-main.js' %}"></script>
+<script src="{% static 'js/abonados/abonados-registro.js' %}"></script>
+</body>
+</html>

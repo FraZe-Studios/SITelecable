@@ -1,0 +1,1131 @@
+{% load static %}
+<div id="dashboard-{{ detalle.codigo_servicio }}" class="ficha-service-panel {% if suscripcion_filtro == detalle.codigo_servicio or not suscripcion_filtro and forloop.first %}active{% endif %}" data-suscripcion="{{ detalle.codigo_servicio }}" data-plan-tipo-servicio="{{ detalle.plan_tipo_servicio }}">
+    <script id="catalog-tickets-{{ detalle.codigo_servicio }}" type="application/json">{{ detalle.catalogo_tickets_json|safe }}</script>
+    <script id="catalog-planes-{{ detalle.codigo_servicio }}" type="application/json">{{ detalle.planes_sede_json|escapejs }}</script>
+    <script id="tickets-data-{{ detalle.codigo_servicio }}" type="application/json">{{ detalle.tickets_json|safe }}</script>
+    <script id="service-data-{{ detalle.codigo_servicio }}" type="application/json">{{ detalle.service_data_json|safe }}</script>
+    <script id="materiales-cliente-{{ detalle.codigo_servicio }}" type="application/json">{{ detalle.materiales_cliente_json|safe }}</script>
+    <script id="personal-list-{{ detalle.codigo_servicio }}" type="application/json">
+    [
+        {% for p in personal_list %}
+            {"id": {{ p.id }}, "nombre": "{{ p.nombre_completo|escapejs }}", "rol": "{{ p.rol|escapejs }}"}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]
+    </script>
+
+    <!-- Tabs Navigation -->
+    <div class="ficha-tabs ficha-tabs-internal">
+        <button type="button" class="ficha-tab ficha-tab-btn active" data-tab-target="svc-datos-{{ detalle.codigo_servicio }}"><i class="fa-solid fa-circle-info"></i> Datos</button>
+        <button type="button" class="ficha-tab ficha-tab-btn" data-tab-target="svc-remoto-{{ detalle.codigo_servicio }}"><i class="fa-solid fa-headset"></i> Remoto (TAC)</button>
+        <button type="button" class="ficha-tab ficha-tab-btn" data-tab-target="svc-campo-{{ detalle.codigo_servicio }}"><i class="fa-solid fa-person-digging"></i> Campo</button>
+        <button type="button" class="ficha-tab ficha-tab-btn" data-tab-target="svc-pagos-{{ detalle.codigo_servicio }}"><i class="fa-solid fa-money-bill"></i> Pagos</button>
+        <button type="button" class="ficha-tab ficha-tab-btn" data-tab-target="svc-materiales-{{ detalle.codigo_servicio }}"><i class="fa-solid fa-box"></i> Materiales</button>
+        <button type="button" class="ficha-tab ficha-tab-btn" data-tab-target="svc-contrato-{{ detalle.codigo_servicio }}"><i class="fa-solid fa-file-contract"></i> Contrato</button>
+    </div>
+
+    <!-- Tab Panel: Datos de Servicio -->
+    <div id="svc-datos-{{ detalle.codigo_servicio }}" class="ficha-internal-panel active">
+        <div class="ficha-card" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+        <div style="flex: 1; min-width: 300px;">
+            <div class="ficha-card-header-row">
+                <h3>Servicio {{ detalle.codigo_servicio }}</h3>
+                <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                    {% if permisos.editar_servicio %}
+                    <button type="button" class="abonados-btn abonados-btn-ghost btn-editar-servicio" data-suscripcion="{{ detalle.codigo_servicio }}"><i class="fa-solid fa-pen"></i> Editar</button>
+                    {% endif %}
+                    {% if detalle.oferta_pendiente %}
+                    <button type="button" class="abonados-btn abonados-btn-warning btn-aprobar-oferta" data-suscripcion="{{ detalle.codigo_servicio }}"><i class="fa-solid fa-check-circle"></i> Aprobar Oferta</button>
+                    {% endif %}
+                    {% if detalle.admite_compromiso %}
+                    <button type="button" class="abonados-btn abonados-btn-ghost btn-compromiso-servicio" data-suscripcion="{{ detalle.codigo_servicio }}"><i class="fa-solid fa-handshake"></i> Compromiso</button>
+                    {% endif %}
+                    <button type="button" class="abonados-btn abonados-btn-purple btn-generar-deuda" data-cliente="{{ cliente.id_cliente_codigo }}" data-suministro="{{ detalle.obj.suministro.numero_suministro }}"><i class="fa-solid fa-file-invoice-dollar"></i> Generar Deuda</button>
+                    <button type="button" class="abonados-btn abonados-btn-new btn-cobrar-servicio" data-suscripcion="{{ detalle.codigo_servicio }}"><i class="fa-solid fa-money-bill"></i> Cobrar</button>
+                    <button type="button" class="abonados-btn abonados-btn-danger btn-ticket-servicio" data-suscripcion="{{ detalle.codigo_servicio }}"><i class="fa-solid fa-ticket"></i> Ticket</button>
+                </div>
+            </div>
+
+            {% with pp=detalle.periodo_pagado %}
+            {% if pp and pp.pagado_hasta %}
+            <div style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.85rem; margin-bottom: 0.85rem; border-radius: var(--radius-sm); {% if pp.tiene_deuda_pendiente %}background: rgba(245,158,11,0.12); border: 1px solid #f59e0b; color: #b45309;{% else %}background: rgba(34,197,94,0.1); border: 1px solid #22c55e; color: #15803d;{% endif %} font-size: 0.7rem; font-weight: 800;">
+                <i class="fa-solid {% if pp.tiene_deuda_pendiente %}fa-triangle-exclamation{% else %}fa-circle-check{% endif %}" style="font-size: 0.85rem;"></i>
+                <span>
+                    Pagado del
+                    <strong>{{ pp.pagado_desde|date:"d/m/Y" }}</strong>
+                    al
+                    <strong>{{ pp.pagado_hasta|date:"d/m/Y" }}</strong>
+                    {% if pp.meses_pagados > 1 %}
+                    <span style="opacity: 0.75; font-weight: 600;">({{ pp.meses_pagados }} mes{{ pp.meses_pagados|pluralize:"es" }})</span>
+                    {% endif %}
+                    {% if pp.tiene_deuda_pendiente %}
+                    — <span style="color: #ef4444; font-weight: 900;">Tiene cuotas pendientes</span>
+                    {% endif %}
+                </span>
+            </div>
+            {% elif pp and pp.tiene_deuda_pendiente %}
+            <div style="display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.85rem; margin-bottom: 0.85rem; border-radius: var(--radius-sm); background: rgba(239,68,68,0.1); border: 1px solid #ef4444; color: #b91c1c; font-size: 0.7rem; font-weight: 800;">
+                <i class="fa-solid fa-circle-xmark" style="font-size: 0.85rem;"></i>
+                <span>Sin pagos registrados — tiene deuda pendiente</span>
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Datos del Servicio en una Fila -->
+            <div class="ficha-datos-servicio-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; background: var(--bg-surface-active); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Suministro</div>
+                    <div class="ficha-dd-value" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.suministro.numero_suministro }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Plan</div>
+                    <div class="ficha-dd-value" id="svc-field-plan-{{ detalle.codigo_servicio }}" data-plan-id="{{ detalle.obj.plan.id }}" data-permite-cambio="{{ detalle.permite_cambio_plan|yesno:'true,false' }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.plan.nombre_plan }} (S/ {{ detalle.obj.plan.costo_plan }})</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Servicio</div>
+                    <div class="ficha-dd-value" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.plan.tipo_servicio }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Velocidad</div>
+                    <div class="ficha-dd-value" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.plan.velocidad|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Estado</div>
+                    <div class="ficha-dd-value" style="font-size: 0.8rem; font-weight: 600;">
+                        <span class="ab-status ab-status-{{ detalle.obj.estado_suscripcion|lower }}">{{ detalle.obj.estado_suscripcion }}</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Anexos</div>
+                    <div class="ficha-dd-value" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.numero_anexos|default:"—" }}</div>
+                </div>
+            </div>
+
+            <!-- Datos Técnicos en una Fila -->
+            <div class="ficha-datos-tecnicos-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; background: var(--bg-surface-active); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Sector</div>
+                    <div class="ficha-dd-value" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.caja_nap.sector.nombre|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">NAP</div>
+                    <div class="ficha-dd-value" id="svc-field-nap-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.caja_nap.codigo|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Puerto</div>
+                    <div class="ficha-dd-value" id="svc-field-puerto-nap-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.puerto_nap|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Precinto</div>
+                    <div class="ficha-dd-value" id="svc-field-presinto-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.presinto_numero|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Modelo Equipo</div>
+                    <div class="ficha-dd-value" id="svc-field-router-modelo-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.modelo_equipo|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Serie Equipo</div>
+                    <div class="ficha-dd-value" id="svc-field-router-serie-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.serie_equipo|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">MAC Equipo</div>
+                    <div class="ficha-dd-value" id="svc-field-router-mac-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.mac_equipo|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Fecha Instalación</div>
+                    <div class="ficha-dd-value" id="svc-field-fecha-instalacion-{{ detalle.codigo_servicio }}" data-raw-value="{{ detalle.obj.fecha_instalacion|date:'Y-m-d'|default:'' }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">
+                        {% if detalle.obj.fecha_instalacion %}{{ detalle.obj.fecha_instalacion|date:"d/m/Y" }}{% else %}—{% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Fecha Límite Corte</div>
+                    <div class="ficha-dd-value" id="svc-field-fecha-limite-corte-{{ detalle.codigo_servicio }}" data-raw-value="{{ detalle.obj.fecha_limite_corte|default:'' }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">
+                        {% if detalle.obj.fecha_limite_corte %}{{ detalle.fecha_limite_corte_display }}{% else %}—{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dirección, Ubicación y Detalles de Facturación del Servicio -->
+            <div class="ficha-detalles-adicionales-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; background: var(--bg-surface-active); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+                <div style="grid-column: span 2; min-width: 280px;">
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Dirección de Servicio</div>
+                    <div class="ficha-dd-value" id="svc-field-direccion-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.direccion_servicio }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Distrito</div>
+                    <div class="ficha-dd-value" id="svc-field-distrito-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.distrito|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Provincia</div>
+                    <div class="ficha-dd-value" id="svc-field-provincia-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.provincia|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Departamento</div>
+                    <div class="ficha-dd-value" id="svc-field-departamento-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.departamento|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Deuda Acumulada</div>
+                    <div class="ficha-dd-value" id="svc-field-deuda-acumulada-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">S/ {{ detalle.obj.deuda_acumulada|default:"0.00" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Latitud</div>
+                    <div class="ficha-dd-value" id="svc-field-latitud-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.latitud|default:"—" }}</div>
+                </div>
+                <div>
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Longitud</div>
+                    <div class="ficha-dd-value" id="svc-field-longitud-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.longitud|default:"—" }}</div>
+                </div>
+                <div style="grid-column: span 2; min-width: 280px;">
+                    <div class="ficha-dt-label" style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Observaciones</div>
+                    <div class="ficha-dd-value" id="svc-field-observaciones-{{ detalle.codigo_servicio }}" style="font-size: 0.8rem; font-weight: 600; color: var(--text-color);">{{ detalle.obj.observaciones|default:"—" }}</div>
+                </div>
+            </div>
+
+            {% if detalle.admite_compromiso %}
+            <p class="ab-address"><i class="fa-solid fa-handshake"></i> Este plan admite compromiso de pago.</p>
+            {% endif %}
+
+        </div>
+        {% if detalle.cache_suministro.gps_latitud and detalle.cache_suministro.gps_longitud or detalle.obj.suministro.latitud and detalle.obj.suministro.longitud %}
+        <div style="flex: 1; min-width: 300px; min-height: 250px;">
+            <iframe
+                width="100%"
+                height="100%"
+                frameborder="0"
+                style="border:0; border-radius: var(--radius-md); min-height: 250px;"
+                src="https://maps.google.com/maps?q={{ detalle.cache_suministro.gps_latitud|default:detalle.obj.suministro.latitud }},{{ detalle.cache_suministro.gps_longitud|default:detalle.obj.suministro.longitud }}&z=15&output=embed">
+            </iframe>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+    <div id="svc-remoto-{{ detalle.codigo_servicio }}" class="ficha-internal-panel">
+        <div class="ficha-card full-col">
+            <h3>Remoto — TAC / NOC</h3>
+            <div class="ficha-table-controls" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; gap:0.5rem; flex-wrap:wrap;">
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="text" class="table-filter" placeholder="Filtrar..." style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); min-width:150px;">
+                    <select class="table-filter-estado" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="">Estado: Todos</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="ASIGNADO">Asignado</option>
+                        <option value="EN_PROCESO">En Proceso</option>
+                        <option value="LIQUIDADO">Liquidado / Completado</option>
+                        <option value="CANCELADO">Cancelado</option>
+                        <option value="EN_ESPERA">En Espera</option>
+                    </select>
+                    <select class="table-filter-categoria" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="">Categoría: Todas</option>
+                        <option value="INCIDENCIA">Incidencia</option>
+                        <option value="AVERIA">Avería</option>
+                        <option value="REQUERIMIENTO">Requerimiento</option>
+                        <option value="INSTALACION">Instalación</option>
+                        <option value="MANTENIMIENTO">Mantenimiento</option>
+                        <option value="SOPORTE">Soporte</option>
+                        <option value="REPARACION">Reparación</option>
+                        <option value="TRASLADO">Traslado</option>
+                        <option value="BAJA">Baja</option>
+                        <option value="OTROS">Otros</option>
+                    </select>
+                    <select class="table-page-size" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="5">5 por página</option>
+                        <option value="10" selected>10 por página</option>
+                        <option value="25">25 por página</option>
+                        <option value="50">50 por página</option>
+                    </select>
+                </div>
+                <button type="button" class="abonados-btn abonados-btn-ghost btn-download-excel"><i class="fa-solid fa-file-excel"></i> Descargar Excel</button>
+            </div>
+            <table class="abonados-table" style="margin-top:0.75rem;">
+                <thead><tr><th>Código</th><th>Fecha emisión</th><th>Tipo de ticket</th><th>Estado</th><th>Fecha liquidación</th><th>Quien liquidó</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for t in detalle.tickets_tac %}
+                    <tr id="T{{ t.id }}">
+                        <td>T{{ t.id }}</td>
+                        <td>{{ t.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                        <td>{{ t.catalogo_nombre|default:t.tipo_ticket }}</td>
+                        <td>{{ t.estado_ticket }}</td>
+                        <td>{% if t.fecha_liquidacion and t.fecha_liquidacion != 'None' %}{{ t.fecha_liquidacion|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+                        <td>
+                            {% if t.liquidacion and t.liquidacion.usuario_liquidacion %}{{ t.liquidacion.usuario_liquidacion.nombre_apellidos }}{% else %}—{% endif %}
+                            {% if t.tecnicos %}
+                            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+                                <i class="fa-solid fa-user-gear"></i> Ejecutores: {{ t.tecnicos|join:", " }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td style="white-space:nowrap;">
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-ver-ticket"
+                                    data-ticket-id="{{ t.id }}"
+                                    data-ticket-num="{{ t.id }}"
+                                    data-ticket-cat="{{ t.categoria|default:t.tipo_ticket }}"
+                                    data-ticket-nombre="{{ t.catalogo_nombre|default:'' }}"
+                                    data-ticket-motivo="{{ t.motivo|default:'' }}"
+                                    data-ticket-detalle="{{ t.detalle|default:'' }}"
+                                    data-ticket-fecha-emision="{{ t.fecha_creacion|date:'d/m/Y'|default:'' }}"
+                                    data-ticket-hora-emision="{{ t.fecha_creacion|time:'H:i'|default:'' }}"
+                                    data-ticket-observacion="{{ t.observacion|default:'' }}"
+                                    data-suscripcion="{{ detalle.codigo_servicio }}"
+                                    title="Ver / imprimir ticket">Ver ticket</button>
+                            {% if t.estado_ticket == 'LIQUIDADO' %}
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-ver-liquidacion" data-ticket-id="{{ t.id }}" data-suscripcion="{{ detalle.codigo_servicio }}" title="Ver liquidación y fotos"><i class="fa-solid fa-images"></i> Comparar</button>
+                            {% endif %}
+                            {% if t.estado_ticket != 'LIQUIDADO' and permisos.liquidar_ticket %}
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-liquidar-desc" data-ticket="{{ t.id }}">Liquidar</button>
+                            {% endif %}
+                            {% if t.estado_ticket != 'LIQUIDADO' %}
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-derivar-ticket-modal" data-ticket="{{ t.id }}" data-modalidad="{{ t.modalidad|default:'remoto' }}">Derivar</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align:center; color: var(--text-muted);">No hay tickets de remoto para este servicio.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="ficha-pagination" style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-top:0.75rem;">
+                <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="prev"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="pagination-pages" style="display:flex; gap:0.25rem;">
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost active" data-page="1">1</button>
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="2">2</button>
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="3">3</button>
+                </div>
+                <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="next"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+    </div>
+</div>
+
+    <div id="svc-campo-{{ detalle.codigo_servicio }}" class="ficha-internal-panel">
+        <div class="ficha-card full-col">
+            <h3>Campo — visitas y liquidación</h3>
+            <div class="ficha-table-controls" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; gap:0.5rem; flex-wrap:wrap;">
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="text" class="table-filter" placeholder="Filtrar..." style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); min-width:150px;">
+                    <select class="table-filter-estado" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="">Estado: Todos</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="ASIGNADO">Asignado</option>
+                        <option value="EN_PROCESO">En Proceso</option>
+                        <option value="LIQUIDADO">Liquidado / Completado</option>
+                        <option value="CANCELADO">Cancelado</option>
+                        <option value="EN_ESPERA">En Espera</option>
+                    </select>
+                    <select class="table-filter-categoria" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="">Categoría: Todas</option>
+                        <option value="INCIDENCIA">Incidencia</option>
+                        <option value="AVERIA">Avería</option>
+                        <option value="REQUERIMIENTO">Requerimiento</option>
+                        <option value="INSTALACION">Instalación</option>
+                        <option value="MANTENIMIENTO">Mantenimiento</option>
+                        <option value="SOPORTE">Soporte</option>
+                        <option value="REPARACION">Reparación</option>
+                        <option value="TRASLADO">Traslado</option>
+                        <option value="BAJA">Baja</option>
+                        <option value="OTROS">Otros</option>
+                    </select>
+                    <select class="table-page-size" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="5">5 por página</option>
+                        <option value="10" selected>10 por página</option>
+                        <option value="25">25 por página</option>
+                        <option value="50">50 por página</option>
+                    </select>
+                </div>
+                <button type="button" class="abonados-btn abonados-btn-ghost btn-download-excel"><i class="fa-solid fa-file-excel"></i> Descargar Excel</button>
+            </div>
+            <table class="abonados-table" style="margin-top:0.75rem;">
+                <thead><tr><th>Código</th><th>Fecha emisión</th><th>Tipo de ticket</th><th>Estado</th><th>Fecha liquidación</th><th>Quien liquidó</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for t in detalle.tickets_campo %}
+                    <tr id="T{{ t.id }}">
+                        <td>T{{ t.id }}</td>
+                        <td>{{ t.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                        <td>{{ t.catalogo_nombre|default:t.tipo_ticket }}</td>
+                        <td>{{ t.estado_ticket }}</td>
+                        <td>{% if t.fecha_liquidacion and t.fecha_liquidacion != 'None' %}{{ t.fecha_liquidacion|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+                        <td>
+                            {% if t.liquidacion and t.liquidacion.usuario_liquidacion %}{{ t.liquidacion.usuario_liquidacion.nombre_apellidos }}{% else %}—{% endif %}
+                            {% if t.tecnicos %}
+                            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">
+                                <i class="fa-solid fa-user-gear"></i> Ejecutores: {{ t.tecnicos|join:", " }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td style="white-space:nowrap;">
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-ver-ticket"
+                                    data-ticket-id="{{ t.id }}"
+                                    data-ticket-num="{{ t.id }}"
+                                    data-ticket-cat="{{ t.categoria|default:t.tipo_ticket }}"
+                                    data-ticket-nombre="{{ t.catalogo_nombre|default:'' }}"
+                                    data-ticket-motivo="{{ t.motivo|default:'' }}"
+                                    data-ticket-detalle="{{ t.detalle|default:'' }}"
+                                    data-ticket-fecha-emision="{{ t.fecha_creacion|date:'d/m/Y'|default:'' }}"
+                                    data-ticket-hora-emision="{{ t.fecha_creacion|time:'H:i'|default:'' }}"
+                                    data-ticket-observacion="{{ t.observacion|default:'' }}"
+                                    data-suscripcion="{{ detalle.codigo_servicio }}"
+                                    title="Ver / imprimir ticket">Ver ticket</button>
+                            {% if t.estado_ticket == 'LIQUIDADO' %}
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-ver-liquidacion" data-ticket-id="{{ t.id }}" data-suscripcion="{{ detalle.codigo_servicio }}" title="Ver liquidación y fotos"><i class="fa-solid fa-images"></i> Comparar</button>
+                            {% endif %}
+                            {% if t.estado_ticket != 'LIQUIDADO' and permisos.liquidar_ticket %}
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-liquidar-mat" data-ticket="{{ t.id }}" data-cobra="{{ t.cobra_materiales|yesno:'1,0' }}" data-categoria="{{ t.categoria|lower }}">Liquidar</button>
+                            {% endif %}
+                            {% if t.estado_ticket != 'LIQUIDADO' %}
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-derivar-ticket-modal" data-ticket="{{ t.id }}" data-modalidad="{{ t.modalidad|default:'campo' }}">Derivar</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align:center; color: var(--text-muted);">No hay tickets de campo para este servicio.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="ficha-pagination" style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-top:0.75rem;">
+                <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="prev"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="pagination-pages" style="display:flex; gap:0.25rem;">
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost active" data-page="1">1</button>
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="2">2</button>
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="3">3</button>
+                </div>
+                <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="next"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <!-- Liquidation Modal -->
+            <div id="liq-mat-modal-{{ detalle.codigo_servicio }}" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center; overflow-y:auto;">
+                <div class="modal-content" style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--radius-md); max-width:900px; width:90%; max-height:90vh; overflow-y:auto; margin:2rem 0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <h3 style="margin:0;">Liquidación en Campo</h3>
+                        <button type="button" class="modal-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                    </div>
+                    <form class="ficha-liq-mat-form" data-suscripcion="{{ detalle.codigo_servicio }}" data-sede-id="{{ detalle.obj.plan.sede_id }}" data-dia-vencimiento="{{ detalle.obj.plan.dia_vencimiento|default:'fin_mes' }}" data-dias-gracia="{{ detalle.obj.plan.dias_gracia|default:5 }}">
+                        <input type="hidden" name="ticket_id" class="liq-mat-ticket-id">
+                        
+                        <!-- Personal que ejecutó (Técnicos) -->
+                        <div style="background:var(--bg-surface-active); border:1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                            <h5 style="margin-top: 0; margin-bottom: 0.75rem; font-size:1.1rem; color:var(--text-color);">Personal que ejecutó (Técnicos)</h5>
+                            <div class="ficha-tecnicos-list" id="ficha-tecnicos-list-{{ detalle.codigo_servicio }}">
+                                <!-- Dynamic rows of technicians will go here -->
+                            </div>
+                            <button type="button" class="abonados-btn abonados-btn-ghost btn-add-tecnico" style="margin-top:0.5rem;"><i class="fa-solid fa-plus"></i> Agregar Técnico</button>
+                        </div>
+
+                        <!-- Equipos y Router -->
+                        <div style="background:var(--bg-surface-active); border:1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                            <h5 style="margin-top: 0; margin-bottom: 0.75rem; font-size:1.1rem; color:var(--text-color); display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fa-solid fa-server"></i> Equipos y Router
+                            </h5>
+                            
+                            <!-- Draggable Router Actual (Si existe) -->
+                            {% if detalle.modelo_equipo or detalle.obj.router_serie or detalle.obj.router_mac %}
+                            <div class="installed-router-card" draggable="true" 
+                                 data-suscripcion="{{ detalle.codigo_servicio }}"
+                                 data-modelo="{{ detalle.modelo_equipo|default:'' }}" 
+                                 data-serie="{{ detalle.obj.router_serie|default:'' }}" 
+                                 data-mac="{{ detalle.obj.router_mac|default:'' }}">
+                                <div style="display:flex; align-items:center; gap:0.5rem;">
+                                    <i class="fa-solid fa-grip-vertical" style="color: var(--text-muted); cursor: grab; font-size: 1.1rem;"></i>
+                                    <div>
+                                        <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-color);">Router Actual en Cliente (Arrastre para retirar)</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                            <strong>Modelo:</strong> <span class="lbl-router-modelo">{{ detalle.modelo_equipo|default:'—' }}</span> | 
+                                            <strong>Serie:</strong> <span class="lbl-router-serie">{{ detalle.obj.router_serie|default:'—' }}</span> | 
+                                            <strong>MAC:</strong> <span class="lbl-router-mac">{{ detalle.obj.router_mac|default:'—' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-retire-router-shortcut abonados-btn abonados-btn-ghost" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;" title="Retirar Router"><i class="fa-solid fa-arrow-right-long"></i> Retirar</button>
+                            </div>
+                            {% endif %}
+
+                            <!-- Nuevos Datos de Router -->
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                                <div class="ab-field" style="position: relative;">
+                                    <label>Modelo de Reemplazo / Nuevo</label>
+                                    <input type="text" name="router_modelo" id="liq-svc-router-modelo-{{ detalle.codigo_servicio }}" value="{{ detalle.modelo_equipo|default:'' }}" class="abonados-select router-modelo-input" placeholder="Buscar modelo de router..." autocomplete="off">
+                                    <div id="liq-svc-router-suggestions-{{ detalle.codigo_servicio }}" class="autocomplete-suggestions router-suggestions-box" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-surface-active); border:1px solid var(--border-color); border-radius:var(--radius-sm); max-height:200px; overflow-y:auto; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,0.5);"></div>
+                                </div>
+                                <div class="ab-field">
+                                    <label>Serie de Reemplazo / Nuevo</label>
+                                    <input type="text" name="router_serie" value="{{ detalle.obj.router_serie|default:'' }}" class="abonados-select router-serie-input" placeholder="Ingrese número de serie del router">
+                                </div>
+                                <div class="ab-field">
+                                    <label>MAC de Reemplazo / Nuevo</label>
+                                    <input type="text" name="router_mac" value="{{ detalle.obj.router_mac|default:'' }}" class="abonados-select router-mac-input" placeholder="Ingrese dirección MAC (XX:XX:XX:XX:XX:XX)">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Materials Section - SIDE BY SIDE (2 Columns) with Drag and Drop -->
+                        <div class="materials-grid-container">
+                            <!-- Column 1: Materiales Utilizados / Nuevos -->
+                            <div class="materials-column-box">
+                                <h5 style="margin-top: 0; margin-bottom: 0.75rem; font-size:1.1rem; color:var(--text-color); display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fa-solid fa-wrench" style="color: var(--primary-color);"></i> Materiales Utilizados
+                                </h5>
+                                
+                                <!-- Draggable Customer Materials List -->
+                                <div class="client-materials-section-box">
+                                    <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); display:block; margin-bottom:0.4rem;">
+                                        <i class="fa-solid fa-box"></i> Materiales en cliente (Arrastra para retirar):
+                                    </span>
+                                    <div class="client-materials-list" id="client-materials-list-{{ detalle.codigo_servicio }}">
+                                        <!-- Dynamically loaded badges in JS -->
+                                    </div>
+                                </div>
+
+                                <div class="ficha-materiales-usados-list"></div>
+                                <button type="button" class="abonados-btn abonados-btn-ghost btn-add-material-usado" style="margin-top:0.5rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.25rem;"><i class="fa-solid fa-plus"></i> Agregar Material Utilizado</button>
+                            </div>
+                            
+                            <!-- Column 2: Materiales Retirados -->
+                            <div class="materials-column-box mat-retirados-column">
+                                <h5 style="margin-top: 0; margin-bottom: 0.75rem; font-size:1.1rem; color:var(--text-color); display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fa-solid fa-rotate-left" style="color: var(--primary-color);"></i> Materiales Retirados
+                                </h5>
+                                
+                                <!-- Dropzone area -->
+                                <div class="materials-dropzone" id="materials-dropzone-{{ detalle.codigo_servicio }}">
+                                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                                    <span>Arrastra aquí equipos o materiales para retirarlos</span>
+                                </div>
+
+                                <div class="ficha-materiales-retirados-list" style="flex: 1; min-height: 50px;"></div>
+                                <button type="button" class="abonados-btn abonados-btn-ghost btn-add-material-retirado" style="margin-top:0.5rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.25rem;"><i class="fa-solid fa-plus"></i> Agregar Retiro Manual</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Service Details Update (Solo Técnica) -->
+                        <div style="background:var(--bg-surface-active); border:1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                            <h5 style="margin-top: 0; margin-bottom: 0.75rem; font-size:1.1rem; color:var(--text-color);">Actualización de Datos del Servicio (Solo Técnica)</h5>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;">
+                                <div class="ab-field">
+                                    <label>Número de Anexos</label>
+                                    <input type="number" name="numero_anexos" id="liq-svc-num-anexos-{{ detalle.codigo_servicio }}" value="{{ detalle.obj.numero_anexos|default:0 }}" class="abonados-select" min="0" required>
+                                </div>
+                                <div class="ab-field" style="position: relative;">
+                                    <label>NAP Vinculada</label>
+                                    <input type="text" id="liq-svc-nap-search-{{ detalle.codigo_servicio }}" value="{{ detalle.obj.caja_nap.codigo|default:'' }}" class="abonados-select nap-search-input" placeholder="Escriba código de NAP..." autocomplete="off" required>
+                                    <input type="hidden" name="nap_id" id="liq-svc-nap-id-{{ detalle.codigo_servicio }}" value="{{ detalle.obj.caja_nap_id|default:'' }}" class="nap-id-hidden">
+                                    <div id="liq-svc-nap-suggestions-{{ detalle.codigo_servicio }}" class="autocomplete-suggestions" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--bg-surface-active); border:1px solid var(--border-color); border-radius:var(--radius-sm); max-height:200px; overflow-y:auto; z-index:9999; box-shadow:0 4px 12px rgba(0,0,0,0.5);"></div>
+                                </div>
+                                <div class="ab-field">
+                                    <label>Puerto NAP</label>
+                                    <input type="number" name="puerto_nap" id="liq-svc-puerto-nap-{{ detalle.codigo_servicio }}" value="{{ detalle.obj.puerto_nap|default:'' }}" class="abonados-select" min="1" max="16" required>
+                                </div>
+                                <div class="ab-field">
+                                    <label>Precinto número</label>
+                                    <input type="text" name="presinto_numero" id="liq-svc-presinto-{{ detalle.codigo_servicio }}" value="{{ detalle.obj.presinto_numero|default:'' }}" class="abonados-select" required>
+                                </div>
+                                <div class="ab-field" style="grid-column: span 2;">
+                                    <label>Hub/Borne Referencia</label>
+                                    <input type="text" name="hub_borne_referencia" id="liq-svc-hub-borne-{{ detalle.codigo_servicio }}" value="{{ detalle.obj.hub_borne_referencia|default:'' }}" class="abonados-select" required>
+                                </div>
+                            </div>
+                            <input type="hidden" name="fecha_instalacion" id="liq-svc-fecha-instalacion-{{ detalle.codigo_servicio }}" value="{{ detalle.obj.fecha_instalacion|date:'Y-m-d'|default:'' }}">
+                            <input type="hidden" name="fecha_limite_corte" id="liq-svc-fecha-limite-corte-{{ detalle.codigo_servicio }}" value="{{ detalle.obj.fecha_limite_corte|date:'Y-m-d'|default:'' }}">
+                        </div>
+
+                        <!-- Notas del Ticket (Opcional) -->
+                        <div style="background:var(--bg-surface-active); border:1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                            <h5 style="margin-top: 0; margin-bottom: 0.75rem; font-size:1.1rem; color:var(--text-color);">Notas de la Visita (Opcional)</h5>
+                            <div class="ab-field full" style="margin-bottom:0.75rem;"><label>Título de la Solución</label><input type="text" name="titulo_solucion" placeholder="Título breve de la solución" class="abonados-select"></div>
+                            <div class="ab-field full"><label>Descripción de la Solución</label><textarea name="solucion" rows="2" placeholder="Detalles de la solución o trabajos realizados..." class="abonados-select"></textarea></div>
+                        </div>
+
+                        <!-- Debt and Evidence -->
+                        <div style="background:var(--bg-surface-active); border:1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; display:flex; flex-direction:column; gap:0.50rem;">
+                            <h5 style="margin-top: 0; margin-bottom: 0.25rem; font-size:1rem; color:var(--text-color);">Cargos y Exoneración</h5>
+                            
+                            <!-- Omitir Ticket (Exonerar) -->
+                            <label class="ab-check-row" style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-weight:600; font-size:0.85rem;">
+                                <input type="checkbox" name="omitir_pago_ticket" class="chk-omitir-pago-ticket" style="accent-color:var(--primary-color);"> Exonerar cobro del Ticket (Costo base)
+                            </label>
+                            <div class="ab-field wrap-motivo-omision-ticket" style="display:none; margin-left:1.35rem; margin-top:0.15rem;">
+                                <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Motivo de exoneración del ticket</label>
+                                <input type="text" name="motivo_omision_ticket" placeholder="Ej: Cortesía, Reclamación..." class="abonados-select" style="padding:0.35rem; font-size:0.85rem; width:100%;">
+                            </div>
+
+                            <!-- Omitir Materiales (Exonerar) -->
+                            <label class="ab-check-row" style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-weight:600; font-size:0.85rem;">
+                                <input type="checkbox" name="omitir_pago_materiales" class="chk-omitir-pago-materiales" style="accent-color:var(--primary-color);"> Exonerar cobro de materiales
+                            </label>
+                            <div class="ab-field wrap-motivo-omision-materiales" style="display:none; margin-left:1.35rem; margin-top:0.15rem;">
+                                <label style="font-size:0.75rem; font-weight:600; color:var(--text-muted);">Motivo de exoneración de materiales</label>
+                                <input type="text" name="motivo_omision_materiales" placeholder="Ej: Campaña, Falla..." class="abonados-select" style="padding:0.35rem; font-size:0.85rem; width:100%;">
+                            </div>
+
+                            <!-- Generar deuda por materiales (Checkbox clásico) -->
+                            <label class="ab-check-row" style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-weight:600; font-size:0.85rem; margin-top:0.25rem; border-top:1px dashed var(--border-color); padding-top:0.5rem;">
+                                <input type="checkbox" name="generar_deuda_materiales" checked style="accent-color:var(--primary-color);"> Generar deuda por materiales
+                            </label>
+                        </div>
+
+                        <div class="ficha-upload-row" style="margin-top:0.5rem; margin-bottom: 1rem;">
+                            <label class="abonados-label">Evidencia fotográfica</label>
+                            <input type="file" class="ficha-liq-evidencia" accept="image/*" multiple>
+                        </div>
+                        
+                        <div style="display:flex; gap:0.5rem; margin-top:1.5rem;">
+                            <button type="submit" class="abonados-btn abonados-btn-new" style="flex:1;">Liquidar con materiales</button>
+                            <button type="button" class="abonados-btn abonados-btn-ghost modal-close" style="flex:1;">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="svc-pagos-{{ detalle.codigo_servicio }}" class="ficha-internal-panel">
+        <div class="ficha-card full-col">
+            <h3>Pagos y comprobantes</h3>
+            <div class="ficha-table-controls" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; gap:0.5rem; flex-wrap:wrap;">
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="text" class="table-filter" placeholder="Filtrar..." style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); min-width:150px;">
+                    <select class="table-filter-estado" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="">Estado: Todos</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="PAGADO">Pagado</option>
+                        <option value="COMPROMISO">Compromiso</option>
+                        <option value="GRATIS">Gratis / Beneficio</option>
+                    </select>
+                    <select class="table-page-size" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="5">5 por página</option>
+                        <option value="10" selected>10 por página</option>
+                        <option value="25">25 por página</option>
+                        <option value="50">50 por página</option>
+                    </select>
+                </div>
+                <button type="button" class="abonados-btn abonados-btn-ghost btn-download-excel"><i class="fa-solid fa-file-excel"></i> Descargar Excel</button>
+            </div>
+            <table class="abonados-table" style="margin-top:0.75rem;">
+                <thead><tr><th>Código</th><th>Fecha emisión</th><th>Concepto</th><th>Documento</th><th>Estado</th><th>Registrado por</th><th>Acción</th></tr></thead>
+                <tbody>
+                    {% for d in detalle.deudas %}
+                    <tr>
+                        <td>D{{ d.id }}</td>
+                        <td>{{ d.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>{{ d.concepto }}</td>
+                        <td>
+                            <span class="ficha-doc-badge ficha-doc-{{ d.tipo_documento|default:'nota venta'|slugify }}">{{ d.tipo_documento|default:"NOTA VENTA" }}</span>
+                            {% if d.numero_documento %}
+                            <div class="ficha-doc-number">{{ d.numero_documento }}</div>
+                            {% endif %}
+                        </td>
+                        <td><span class="ficha-pay-status ficha-pay-status-{{ d.estado|default:'PENDIENTE'|lower }}">{{ d.estado|default:"PENDIENTE" }}</span></td>
+                        <td>{% if d.usuario_registro %}{{ d.usuario_registro.nombre_apellidos }}{% else %}—{% endif %}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                {% if d.estado != 'PAGADO' and d.id > 0 %}
+                                    {% if permisos.registrar_pago %}
+                                    <button type="button" class="abonados-btn abonados-btn-ghost btn-editar-deuda" data-deuda-id="{{ d.id }}" data-deuda-monto="{{ d.monto_actual }}" data-deuda-concepto="{{ d.concepto }}"><i class="fa-solid fa-pen"></i> Editar</button>
+                                    <button type="button" class="abonados-btn abonados-btn-danger btn-eliminar-deuda" data-deuda-id="{{ d.id }}"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                                    {% endif %}
+                                {% endif %}
+                                {% if d.estado != 'PAGADO' and detalle.admite_compromiso %}
+                                <button type="button" class="abonados-btn abonados-btn-ghost btn-compromiso" data-deuda="{{ d.id }}" data-suscripcion="{{ detalle.id_suscripcion }}">Compromiso</button>
+                                {% endif %}
+                                {% if d.evidencia_url %}
+                                <a href="{{ d.evidencia_url }}" target="_blank" class="abonados-btn abonados-btn-ghost btn-ver-voucher" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.25rem;">
+                                    <i class="fa-solid fa-receipt"></i> Ver Voucher
+                                </a>
+                                {% endif %}
+                                {% if d.comprobante_url %}
+                                <a href="{{ d.comprobante_url }}" target="_blank" class="abonados-btn abonados-btn-ghost btn-ver-comprobante" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.25rem;">
+                                    <i class="fa-solid fa-file-invoice"></i> Ver Comprobante
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align:center; color: var(--text-muted);">No hay deudas pendientes para este servicio.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="ficha-pagination" style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-top:0.75rem;">
+                <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="prev"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="pagination-pages" style="display:flex; gap:0.25rem;">
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost active" data-page="1">1</button>
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="2">2</button>
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="3">3</button>
+                </div>
+                <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="next"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="svc-materiales-{{ detalle.codigo_servicio }}" class="ficha-internal-panel">
+        <div class="ficha-card full-col">
+            <h3>Materiales — {{ detalle.codigo_servicio }}</h3>
+            <div class="ficha-table-controls" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; gap:0.5rem; flex-wrap:wrap;">
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="text" class="table-filter" placeholder="Filtrar..." style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); min-width:150px;">
+                    <select class="table-filter-estado" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="">Estado: Todos</option>
+                        <option value="ASIGNADO">Asignado</option>
+                        <option value="LIQUIDADO">Liquidado</option>
+                    </select>
+                    <select class="table-page-size" style="padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                        <option value="5">5 por página</option>
+                        <option value="10" selected>10 por página</option>
+                        <option value="25">25 por página</option>
+                        <option value="50">50 por página</option>
+                    </select>
+                </div>
+                <button type="button" class="abonados-btn abonados-btn-ghost btn-download-excel"><i class="fa-solid fa-file-excel"></i> Descargar Excel</button>
+            </div>
+            <table class="abonados-table" style="margin-top:0.75rem;">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Material</th>
+                        <th>Cantidad</th>
+                        <th>Tipo Acción</th>
+                        <th>Se cobra?</th>
+                        <th>Total</th>
+                        <th>Ticket</th>
+                        <th>Fecha Liquidación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in detalle.materiales %}
+                    <tr>
+                        <td>M{{ m.id }}</td>
+                        <td>{{ m.nombre_material }}</td>
+                        <td>{{ m.cantidad }}</td>
+                        <td>
+                            <span class="badge" style="padding:0.25rem 0.5rem; border-radius:4px; font-size:0.75rem; font-weight:bold; color:#fff; background-color:{% if m.tipo_accion == 'Retiro' %}#ef4444{% else %}#10b981{% endif %};">
+                                {{ m.tipo_accion }}
+                            </span>
+                        </td>
+                        <td>{{ m.se_cobra }}</td>
+                        <td>S/ {{ m.precio_total|floatformat:2 }}</td>
+                        <td>T{{ m.ticket_id }}</td>
+                        <td>{{ m.fecha_asignacion|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" style="text-align:center; color: var(--text-muted);">No hay materiales registrados (usados, retirados o cobrados) para este servicio.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="ficha-pagination" style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-top:0.75rem;">
+                <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="prev"><i class="fa-solid fa-chevron-left"></i></button>
+                <div class="pagination-pages" style="display:flex; gap:0.25rem;">
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost active" data-page="1">1</button>
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="2">2</button>
+                    <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="3">3</button>
+                </div>
+                <button type="button" class="pagination-btn abonados-btn abonados-btn-ghost" data-page="next"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="svc-contrato-{{ detalle.codigo_servicio }}" class="ficha-internal-panel">
+        <div class="ficha-card full-col">
+            <h3>Contrato — {{ detalle.codigo_servicio }}</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Grid/Row layout of details -->
+                <div class="ficha-contrato-details-row" style="display: flex; flex-wrap: wrap; gap: 1rem; background: var(--bg-surface-hover, #f9fafb); padding: 1.25rem; border-radius: var(--radius-md, 8px); border: 1px solid var(--border-color, #e5e7eb);">
+                    <div style="flex: 1 1 180px; min-width: 150px;">
+                        <span style="display: block; font-size: 0.65rem; color: var(--text-muted, #6b7280); font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem; letter-spacing: 0.05em;">Responsable</span>
+                        <span style="font-size: 0.78rem; color: var(--text-primary, #111827); font-weight: 700;">{{ detalle.obj.vendedor_original.nombre_apellidos|default:"—" }}</span>
+                    </div>
+                    <div style="flex: 1 1 120px; min-width: 100px;">
+                        <span style="display: block; font-size: 0.65rem; color: var(--text-muted, #6b7280); font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem; letter-spacing: 0.05em;">Fecha contrato</span>
+                        <span style="font-size: 0.78rem; color: var(--text-primary, #111827); font-weight: 700;">{{ detalle.obj.fecha_contrato|date:"d/m/Y"|default:"—" }}</span>
+                    </div>
+                    <div style="flex: 1 1 200px; min-width: 180px;">
+                        <span style="display: block; font-size: 0.65rem; color: var(--text-muted, #6b7280); font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem; letter-spacing: 0.05em;">Plantilla PDF (RUC Sede)</span>
+                        <span>
+                            {% if detalle.contrato_plantilla and detalle.contrato_plantilla.contrato_url %}
+                            <a href="{{ detalle.contrato_plantilla.contrato_url }}" target="_blank" class="abonados-btn abonados-btn-ghost" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; height: auto; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-download"></i> Descargar ({{ detalle.contrato_plantilla.numero_ruc }})</a>
+                            {% else %}<span style="color: var(--text-muted, #6b7280); font-size:0.75rem;">Sin plantilla vinculada</span>{% endif %}
+                        </span>
+                    </div>
+                    <div style="flex: 1 1 120px; min-width: 100px;">
+                        <span style="display: block; font-size: 0.65rem; color: var(--text-muted, #6b7280); font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem; letter-spacing: 0.05em;">Contrato firmado</span>
+                        <span>
+                            {% if detalle.obj.contrato_pdf_url %}
+                            <a href="{{ detalle.obj.contrato_pdf_url }}" target="_blank" style="color: var(--primary, #2563eb); font-weight: 700; text-decoration: underline; font-size:0.75rem;">Ver archivo</a>
+                            {% else %}<span style="color: var(--danger, #ef4444); font-size:0.75rem; font-weight:700;">Pendiente</span>{% endif %}
+                        </span>
+                    </div>
+                    <div style="flex: 1 1 150px; min-width: 120px;">
+                        <span style="display: block; font-size: 0.65rem; color: var(--text-muted, #6b7280); font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem; letter-spacing: 0.05em;">DNI</span>
+                        <span>
+                            {% if cliente.dni %}
+                                <strong style="font-size:0.75rem;">{{ cliente.dni }}</strong>
+                                {% if detalle.obj.documento_dni_url %}
+                                    — <a href="{{ detalle.obj.documento_dni_url }}" target="_blank" style="color: var(--primary, #2563eb); font-weight: 700; text-decoration: underline; font-size:0.72rem;">Ver scan</a>
+                                {% endif %}
+                            {% else %}
+                                <span style="color: var(--text-muted, #6b7280); font-size:0.75rem;">Adjuntar</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div style="flex: 1 1 120px; min-width: 100px;">
+                        <span style="display: block; font-size: 0.65rem; color: var(--text-muted, #6b7280); font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem; letter-spacing: 0.05em;">Recibo de luz</span>
+                        <span>
+                            {% if detalle.obj.documento_recibo_luz_url %}
+                            <a href="{{ detalle.obj.documento_recibo_luz_url }}" target="_blank" style="color: var(--primary, #2563eb); font-weight: 700; text-decoration: underline; font-size:0.75rem;">Ver archivo</a>
+                            {% else %}<span style="color: var(--danger, #ef4444); font-size:0.75rem; font-weight:700;">Pendiente</span>{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Grid/Row layout of uploads -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 0.5rem;">
+                    <div style="background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: var(--radius-md, 8px); padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <label class="abonados-label" style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: 0.03em;">Subir contrato firmado (PDF)</label>
+                        <input type="file" class="ficha-upload-input" accept=".pdf,image/*" data-tipo="contrato" data-cliente="{{ cliente.id_cliente_codigo }}" data-suscripcion="{{ detalle.codigo_servicio }}" style="font-size: 0.75rem; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px;">
+                    </div>
+                    <div style="background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: var(--radius-md, 8px); padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <label class="abonados-label" style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: 0.03em;">Subir DNI escaneado</label>
+                        <input type="file" class="ficha-upload-input" accept="image/*,.pdf" data-tipo="dni" data-cliente="{{ cliente.id_cliente_codigo }}" data-suscripcion="{{ detalle.codigo_servicio }}" style="font-size: 0.75rem; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px;">
+                    </div>
+                    <div style="background: var(--bg-surface, #fff); border: 1px solid var(--border-color, #e5e7eb); border-radius: var(--radius-md, 8px); padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <label class="abonados-label" style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted, #6b7280); text-transform: uppercase; letter-spacing: 0.03em;">Subir recibo de luz</label>
+                        <input type="file" class="ficha-upload-input" accept="image/*,.pdf" data-tipo="recibo_luz" data-cliente="{{ cliente.id_cliente_codigo }}" data-suscripcion="{{ detalle.codigo_servicio }}" style="font-size: 0.75rem; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Cobro -->
+<div id="modal-cobro" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--radius-md); max-width:650px; width:90%; max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="margin:0;">Registrar Multipago</h3>
+            <button type="button" class="modal-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form class="modal-cobro-form ficha-pago-form" data-cliente="{{ cliente.id_cliente_codigo }}" data-suscripcion="{{ detalle.codigo_servicio }}" data-suministro="{{ detalle.obj.suministro.numero_suministro }}" data-costo-plan="{{ detalle.obj.plan.costo_plan|default:'0' }}" novalidate>
+            <input type="hidden" name="suscripcion_id">
+            
+            <div class="ab-field" style="margin-bottom:1rem;">
+                <label style="font-weight:600;">Seleccionar cargos a pagar</label>
+                <div class="multipago-debts-list" style="border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem; max-height: 250px; overflow-y: auto; background: var(--bg-background);">
+                    {% for d in detalle.deudas %}
+                        {% if d.estado != 'PAGADO' %}
+                        <div class="multipago-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.5rem 0; border-bottom:1px solid var(--border-color);" data-deuda-id="{{ d.id }}" data-monto="{{ d.monto_actual }}">
+                            <input type="checkbox" name="selected_deuda" value="{{ d.id }}" checked style="width:18px; height:18px; cursor:pointer;" class="multipago-checkbox">
+                            <div style="flex:1; font-size:0.9rem;">
+                                <strong>D{{ d.id }}</strong> - {{ d.concepto }} <br/>
+                                <span style="color:var(--text-muted);">Monto: S/ {{ d.monto_actual }} | Vence: {{ d.fecha_vencimiento|date:"d/m/Y"|default:"—" }}</span>
+                            </div>
+                            <div style="width:140px;">
+                                <select class="abonados-select multipago-comprobante-select" style="padding:0.25rem; font-size:0.85rem; width:100%;">
+                                    {% if d.es_plan %}
+                                        <option value="BOLETA" {% if not cliente.ruc or cliente.ruc|length != 11 %}selected{% endif %}>Boleta</option>
+                                        <option value="FACTURA" {% if cliente.ruc and cliente.ruc|length == 11 %}selected{% endif %}>Factura</option>
+                                    {% else %}
+                                        <option value="BOLETA">Boleta</option>
+                                        <option value="FACTURA">Factura</option>
+                                        <option value="NOTA_VENTA" selected>Nota de venta</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% empty %}
+                        <div style="text-align:center; padding:1rem; color:var(--text-muted); font-size:0.9rem;">No hay cargos pendientes. Si desea realizar un pago libre, use el botón de abajo.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Opción de Pago Libre -->
+            <div style="margin-bottom: 1rem; border: 1px dashed var(--border-color); padding: 0.75rem; border-radius: var(--radius-sm);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label style="cursor:pointer; font-weight:600; display:flex; align-items:center; gap:0.35rem;">
+                        <input type="checkbox" id="chk-pago-libre" style="width:16px; height:16px;"> Agregar pago libre / Adelanto
+                    </label>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Costo de Servicio: <strong>S/ {{ detalle.obj.plan.costo_plan|default:"0.00" }}</strong></span>
+                </div>
+                <div id="pago-libre-fields" style="display:none; margin-top:0.5rem; flex-direction:column; gap:0.75rem;">
+                    <!-- Selector de meses para adelanto -->
+                    <div style="display:flex; gap:0.5rem; align-items:center; background:var(--bg-surface-active); padding:0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+                        <div style="flex:1;">
+                            <label style="font-size:0.75rem; font-weight:600; display:block; margin-bottom:0.15rem;">Meses a pagar (Adelanto)</label>
+                            <input type="number" id="pago-libre-meses" min="1" step="1" placeholder="Ej. 1" class="abonados-select" style="width:100%; padding:0.4rem; font-size:0.85rem;">
+                        </div>
+                        <div style="flex:2;">
+                            <label style="font-size:0.75rem; font-weight:600; display:block; margin-bottom:0.15rem;">Meses a detallar (Nombres)</label>
+                            <input type="text" id="pago-libre-meses-detalle" placeholder="Ej. Julio, Agosto" class="abonados-select" style="width:100%; padding:0.4rem; font-size:0.85rem;">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem;">Concepto</label>
+                            <input type="text" id="pago-libre-concepto" placeholder="Ej. Pago adelanto" class="abonados-select" style="width:100%; padding:0.4rem; font-size:0.85rem;">
+                        </div>
+                        <div style="width:120px;">
+                            <label style="font-size:0.8rem;">Monto S/</label>
+                            <input type="number" id="pago-libre-monto" step="0.01" min="0.01" value="0.00" class="abonados-select" style="width:100%; padding:0.4rem; font-size:0.85rem;">
+                        </div>
+                        <div style="width:140px;">
+                            <label style="font-size:0.8rem;">Comprobante</label>
+                            <select id="pago-libre-comprobante" class="abonados-select" style="width:100%; padding:0.4rem; font-size:0.85rem;">
+                                <option value="BOLETA">Boleta</option>
+                                <option value="FACTURA">Factura</option>
+                                <option value="NOTA_VENTA" selected>Nota de venta</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background:var(--bg-background); padding:0.75rem; border-radius:var(--radius-sm); margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border-color);">
+                <span style="font-weight:600; font-size:1.1rem; color:var(--text-color);">Total a cobrar:</span>
+                <span id="multipago-total-display" style="font-weight:700; font-size:1.4rem; color:var(--accent-color);">S/ 0.00</span>
+            </div>
+
+            <div class="ab-field" style="margin-bottom:0.75rem;">
+                <label>RUC emisor</label>
+                <select name="ruc_emisor_id" class="abonados-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);" required>
+                    <option value="">Seleccione RUC...</option>
+                    {% for r in detalle.rucs_emision %}
+                    <option value="{{ r.id }}" {% if forloop.first %}selected{% endif %}>{{ r.numero_ruc }} — {{ r.razon_social }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="ab-field" style="margin-bottom:0.75rem;">
+                <label>Método pago</label>
+                <select name="metodo_pago" class="abonados-select metodo-pago-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                    <option value="EFECTIVO">Efectivo</option>
+                    <option value="YAPE">Yape</option>
+                    <option value="TRANSFERENCIA">Transferencia</option>
+                    <option value="MIXTO">Mixto</option>
+                </select>
+            </div>
+            <div class="ab-field mixto-wrap" style="margin-bottom:0.75rem; display:none;">
+                <label>Monto efectivo</label>
+                <input type="number" name="monto_efectivo" step="0.01" min="0" class="abonados-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+            </div>
+            <div class="ab-field mixto-wrap" style="margin-bottom:0.75rem; display:none;">
+                <label>Monto Yape/transferencia</label>
+                <input type="number" name="monto_digital" step="0.01" min="0" class="abonados-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+            </div>
+            <div class="ab-field op-wrap" style="margin-bottom:0.75rem; display:none;">
+                <label>N° operación</label>
+                <input type="text" name="numero_operacion" placeholder="Requerido para digital" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+            </div>
+            <div class="ab-field evidencia-wrap" style="margin-bottom:0.75rem; display:none;">
+                <label>Evidencia (Yape / transferencia / mixto)</label>
+                <input type="file" name="evidencia" accept="image/*" class="ficha-evidencia-input" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+            </div>
+            
+            <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+                <button type="submit" class="abonados-btn abonados-btn-new" style="flex:1;">Registrar pago</button>
+                <button type="button" class="modal-close abonados-btn abonados-btn-ghost" style="flex:1;">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Ticket -->
+<div id="modal-ticket" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--radius-md); max-width:500px; width:90%; max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="margin:0;">Generar Ticket</h3>
+            <button type="button" class="modal-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form class="modal-ticket-form">
+            <input type="hidden" name="suscripcion_id">
+            <div class="ab-field" style="margin-bottom:0.75rem;">
+                <label>Área</label>
+                <select id="ticket-filter-area" class="abonados-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);" disabled>
+                    <option value="PLANTA_INTERNA" selected>Planta Interna</option>
+                    <option value="PLANTA_EXTERNA">Planta Externa</option>
+                </select>
+            </div>
+            <div class="ab-field" style="margin-bottom:0.75rem;">
+                <label>Modalidad</label>
+                <select id="ticket-filter-modalidad" class="abonados-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                    <option value="">— Seleccione —</option>
+                </select>
+            </div>
+            <div class="ab-field" style="margin-bottom:0.75rem;">
+                <label>Categoría</label>
+                <select id="ticket-filter-categoria" class="abonados-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);">
+                    <option value="">— Seleccione —</option>
+                </select>
+            </div>
+            <div class="ab-field" style="margin-bottom:0.75rem;">
+                <label>Tipo de ticket</label>
+                <select name="catalogo_ticket_id" class="abonados-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);" required>
+                    <option value="">— Seleccione —</option>
+                </select>
+            </div>
+            <!-- Detalle dinámico del tipo de ticket seleccionado -->
+            <div id="catalog-ticket-details-card" style="display:none; margin-bottom:0.75rem; padding:0.85rem; background:var(--bg-surface-active); border:1px solid var(--border-color); border-radius:var(--radius-md); font-size:0.82rem; box-shadow:inset 0 1px 3px rgba(0,0,0,0.02);">
+                <h4 style="margin:0 0 0.5rem 0; font-size:0.85rem; font-weight:700; color:var(--text-color); display:flex; align-items:center; gap:0.35rem;">
+                    <i class="fa-solid fa-circle-info" style="color:var(--primary);"></i> Detalles del Tipo de Ticket
+                </h4>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
+                    <div><strong style="color:var(--text-muted);">Área de derivación:</strong> <span id="cat-det-area" style="font-weight:600;"></span></div>
+                    <div><strong style="color:var(--text-muted);">Modalidad base:</strong> <span id="cat-det-modalidad" style="font-weight:600;"></span></div>
+                    <div><strong style="color:var(--text-muted);">Costo base:</strong> <span id="cat-det-precio" style="font-weight:700; color:var(--text-color);"></span></div>
+                    <div><strong style="color:var(--text-muted);">Tipo cobertura:</strong> <span id="cat-det-universal" style="font-weight:600;"></span></div>
+                </div>
+                <div id="cat-det-behaviors" style="padding-top:0.5rem; border-top:1px dashed var(--border-color); display:flex; flex-wrap:wrap; gap:0.35rem;">
+                </div>
+            </div>
+            <!-- Checkbox de distribución / derivación manual -->
+            <div style="margin-bottom:0.75rem;">
+                <label class="ab-check-row" style="display:flex; align-items:center; gap:0.4rem; font-size:0.875rem; cursor:pointer; font-weight:600;">
+                    <input type="checkbox" name="derivar_campo" id="ticket-derivar-campo">
+                    Derivar directamente a trabajo de Campo (Técnico)
+                </label>
+            </div>
+            <div class="ab-field" style="margin-bottom:0.75rem;">
+                <label>Motivo / problema</label>
+                <textarea name="motivo" rows="3" placeholder="Descripción del problema" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm);" required></textarea>
+            </div>
+            <div id="materiales-section" style="display:none; margin-bottom:0.75rem; padding:0.85rem; background:var(--bg-surface-active); border:1px solid var(--border-color); border-radius:var(--radius-md);">
+                <label style="font-size:0.85rem; font-weight:600; color:var(--text-color); margin-bottom:0.5rem; display:block;"><i class="fa-solid fa-screwdriver-wrench" style="color:var(--primary-color);"></i> ¿Quién asume el costo de los materiales?</label>
+                <div style="display:flex; gap:1.5rem; margin-top:0.35rem;">
+                    <label style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer; font-weight:500;">
+                        <input type="radio" name="cargo_materiales" value="empresa" checked style="accent-color:var(--primary-color);"> La Empresa (Costo Asumido)
+                    </label>
+                    <label style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer; font-weight:500;">
+                        <input type="radio" name="cargo_materiales" value="abonado" style="accent-color:var(--primary-color);"> El Abonado (Cobrar)
+                    </label>
+                </div>
+            </div>
+            <!-- Nuevo Suministro -->
+            <div id="nuevo-suministro-section" style="display:none; margin-bottom:0.75rem; padding:0.85rem; background:var(--bg-surface-active); border:1px solid rgba(99,102,241,0.3); border-radius:var(--radius-md);">
+                <label style="font-size:0.85rem; font-weight:600; color:var(--text-color); margin-bottom:0.5rem; display:block;"><i class="fa-solid fa-plug" style="color:var(--primary-color);"></i> Nuevo Suministro</label>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin:0 0 0.5rem;">Ingrese el número de suministro al que se trasladará el servicio.</p>
+                <div style="display:flex; gap:0.5rem; align-items:flex-start;">
+                    <div style="flex:1;">
+                        <input type="text" id="nuevo-suministro-input" placeholder="Ej: 71834746" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem; background:var(--bg-surface); color:var(--text-color);">
+                    </div>
+                </div>
+                <div id="suministro-preview" style="display:none; margin-top:0.5rem; padding:0.4rem 0.65rem; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2); border-radius:var(--radius-sm); font-size:0.8rem; color:var(--text-color);"></div>
+            </div>
+            <!-- Migración de Plan -->
+            <div id="migracion-plan-section" style="display:none; margin-bottom:0.75rem; padding:0.85rem; background:var(--bg-surface-active); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-md);">
+                <label style="font-size:0.85rem; font-weight:600; color:var(--text-color); margin-bottom:0.5rem; display:block;"><i class="fa-solid fa-arrow-up-right-dots" style="color:#10b981;"></i> Migración de Plan</label>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin:0 0 0.5rem;">Seleccione el nuevo plan. El plan anterior se cortará y se generará prorrateo por los días usados si aplica.</p>
+                <select id="nuevo-plan-select" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem; background:var(--bg-surface); color:var(--text-color);">
+                    <option value="">— Seleccione nuevo plan —</option>
+                </select>
+                <div style="margin-top:0.5rem; display:flex; gap:0.5rem; align-items:center;">
+                    <i class="fa-solid fa-circle-info" style="color:#10b981; font-size:0.75rem;"></i>
+                    <span style="font-size:0.76rem; color:var(--text-muted);">Si el abonado tiene menos de 3 días desde su último cambio, puede realizar el cambio sin costo de penalidad.</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+                <button type="submit" class="abonados-btn abonados-btn-new" style="flex:1;">Generar ticket</button>
+                <button type="button" class="modal-close abonados-btn abonados-btn-ghost" style="flex:1;">Cancelar</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Derivación de Ticket -->
+<div id="modal-derivar-ticket" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--radius-md); max-width:450px; width:90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 id="derivar-modal-title" style="margin:0;">Derivar Ticket</h3>
+            <button type="button" class="modal-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form id="form-derivar-ticket">
+            <input type="hidden" name="ticket_id" id="derivar-ticket-id">
+            <input type="hidden" name="modalidad" id="derivar-ticket-modalidad">
+            <p id="derivar-modal-text" style="font-size:0.95rem; margin-bottom:1rem; color:var(--text-muted);"></p>
+            <div class="ab-field" style="margin-bottom:1rem;">
+                <label>Motivo de la derivación</label>
+                <textarea name="motivo" id="derivar-motivo" rows="3" placeholder="Escriba el motivo por el cual no se pudo solucionar y se deriva..." style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem;" required></textarea>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:1.5rem;">
+                <button type="submit" class="abonados-btn abonados-btn-new" style="flex:1;">Confirmar Derivación</button>
+                <button type="button" class="abonados-btn abonados-btn-ghost modal-close" style="flex:1;">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-generar-deuda" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--radius-md); max-width:450px; width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="margin:0;">Generar Deuda</h3>
+            <button type="button" class="modal-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form class="modal-generar-deuda-form">
+            <input type="hidden" name="cliente_id" id="deuda-cliente-id">
+            <input type="hidden" name="suministro_id" id="deuda-suministro-id">
+            <div class="ab-field" style="margin-bottom:1rem;">
+                <label>Monto (S/)</label>
+                <input type="number" step="0.01" name="monto" min="0.01" placeholder="Ej: 50.00" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem;" required>
+            </div>
+            <div class="ab-field" style="margin-bottom:1rem;">
+                <label>Concepto</label>
+                <textarea name="concepto" rows="3" placeholder="Ej: Cargo por daño de equipo, etc." style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem;" required></textarea>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:1.5rem;">
+                <button type="submit" class="abonados-btn abonados-btn-purple" style="flex:1;">Generar Deuda</button>
+                <button type="button" class="abonados-btn abonados-btn-ghost modal-close" style="flex:1;">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Editar Deuda -->
+<div id="modal-editar-deuda" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--radius-md); max-width:450px; width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="margin:0;">Editar Deuda</h3>
+            <button type="button" class="modal-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form class="modal-editar-deuda-form">
+            <input type="hidden" name="deuda_id" id="edit-deuda-id">
+            <div class="ab-field" style="margin-bottom:1rem;">
+                <label>Monto (S/)</label>
+                <input type="number" step="0.01" name="monto" id="edit-deuda-monto" min="0.01" placeholder="Ej: 50.00" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem;" required>
+            </div>
+            <div class="ab-field" style="margin-bottom:1rem;">
+                <label>Concepto</label>
+                <textarea name="concepto" id="edit-deuda-concepto" rows="3" placeholder="Ej: Cargo por daño de equipo, etc." style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem;" required></textarea>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:1.5rem;">
+                <button type="submit" class="abonados-btn abonados-btn-new" style="flex:1;">Guardar Cambios</button>
+                <button type="button" class="abonados-btn abonados-btn-ghost modal-close" style="flex:1;">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Liquidación Remota (TAC) -->
+<div id="modal-liquidar-remoto-{{ detalle.codigo_servicio }}" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div class="modal-content" style="background:var(--bg-surface); padding:1.5rem; border-radius:var(--radius-md); max-width:450px; width:90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <h3 style="margin:0;">Liquidación Remota (TAC)</h3>
+            <button type="button" class="modal-close" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form class="ficha-liq-desc-form">
+            <input type="hidden" name="ticket_id" id="liq-desc-ticket-{{ detalle.codigo_servicio }}">
+            <div class="ab-field" style="margin-bottom:1rem;">
+                <label>Título de la solución</label>
+                <input type="text" name="titulo_solucion" required placeholder="Título breve de la solución" style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem;">
+            </div>
+            <div class="ab-field" style="margin-bottom:1rem;">
+                <label>Descripción de la solución</label>
+                <textarea name="solucion" rows="3" required placeholder="Detalles de la solución técnica..." style="width:100%; padding:0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.9rem;"></textarea>
+            </div>
+            <div style="display:flex; gap:0.5rem; margin-top:1.5rem;">
+                <button type="submit" class="abonados-btn abonados-btn-new" style="flex:1;">Liquidar ticket</button>
+                <button type="button" class="abonados-btn abonados-btn-ghost modal-close" style="flex:1;">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>

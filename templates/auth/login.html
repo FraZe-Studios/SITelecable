@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión | SIT Telecable</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Global CSS -->
+    <link rel="stylesheet" href="{% static 'global/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/layout.css' %}">
+    
+    <!-- Specific CSS -->
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body class="login-body">
+    <!-- Background Blur Shapes -->
+    <div class="glow-circle glow-circle-1"></div>
+    <div class="glow-circle glow-circle-2"></div>
+
+    <div class="login-card">
+        <div class="login-header">
+            <div class="brand-container">
+                <!-- SVG Logo Icon -->
+                <svg class="brand-logo" viewBox="0 0 24 24">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                <span class="brand-text">SIT Telecable</span>
+            </div>
+            
+            <!-- Sun & Moon Mode Selector -->
+            <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Cambiar tema">
+                <!-- Sun Icon (Light Mode) -->
+                <svg class="theme-icon sun-icon" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                
+                <!-- Moon Icon (Dark Mode) -->
+                <svg class="theme-icon moon-icon" viewBox="0 0 24 24">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <h2 class="title-dynamic">Iniciar Sesión</h2>
+        <p class="login-desc">Ingresa tus credenciales para acceder a la intranet comercial.</p>
+
+        <!-- Alert Banner -->
+        <div class="alert alert-danger alert-login" id="loginAlert" role="alert">
+            <svg class="svg-icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span id="alertMessage">Error</span>
+        </div>
+
+        {% if reason == 'duplicate' %}
+        <div class="alert alert-warning alert-duplicate-session" id="duplicateSessionAlert">
+            <svg class="svg-icon" viewBox="0 0 24 24">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>Tu sesión fue cerrada porque se inició sesión en otro dispositivo.</span>
+        </div>
+        {% endif %}
+
+        <!-- Form -->
+        <form id="loginForm" novalidate>
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label" for="usernameInput">Usuario</label>
+                <div class="input-icon-wrapper">
+                    <input type="text" class="form-control" id="usernameInput" placeholder="Ej: admin" required autocomplete="username">
+                    <!-- User Icon -->
+                    <svg class="input-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="form-group form-group-password">
+                <label class="form-label" for="passwordInput">Contraseña</label>
+                <div class="input-icon-wrapper">
+                    <input type="password" class="form-control" id="passwordInput" placeholder="••••••••" required autocomplete="current-password">
+                    <!-- Lock Icon -->
+                    <svg class="input-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-login" id="submitBtn">
+                <span id="btnText">Ingresar</span>
+                <div class="spinner btn-spinner" id="btnSpinner"></div>
+            </button>
+        </form>
+
+        <div class="footer-text">
+            SIT Telecable ERP/CRM v1.0.0 © 2026
+        </div>
+    </div>
+
+    <!-- Login JS file -->
+    <script src="{% static 'global/js/login.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!-- templates/organizacion/sede/datos.html -->
+<div id="sedeTabDatos" style="display:none;">
+    <div class="config-card" style="max-width: 600px; margin: 0 auto;">
+        <div class="config-card-title">Editar Información de Sede</div>
+        <form id="sedeDatosForm">
+            <div class="config-form-group">
+                <label>Nombre de la Sede</label>
+                <input type="text" class="config-form-input" name="nombre" id="datosSedeNombre" required>
+                <span style="font-size:0.7rem; color:var(--text-muted); display:block; margin-top:2px;">
+                    Nota: Al guardar, el trigger del sistema concatena automáticamente el prefijo geográfico.
+                </span>
+            </div>
+            <div class="config-form-group">
+                <label>Descripción</label>
+                <input type="text" class="config-form-input" name="descripcion" id="datosSedeDescripcion">
+            </div>
+            <div class="config-form-group">
+                <label>Sector Geográfico Asignado</label>
+                <select class="config-form-input" name="sector_id" id="datosSedeSectorSelect">
+                </select>
+            </div>
+            <div style="display:flex; gap:1rem;">
+                <div class="config-form-group" style="flex:1;">
+                    <label>Latitud</label>
+                    <input type="number" step="any" class="config-form-input" name="latitud" id="datosSedeLatitud" required>
+                </div>
+                <div class="config-form-group" style="flex:1;">
+                    <label>Longitud</label>
+                    <input type="number" step="any" class="config-form-input" name="longitud" id="datosSedeLongitud" required>
+                </div>
+            </div>
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button type="submit" class="config-btn-save" title="Guardar Cambios de la Sede">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    window.renderSedeTabDatos = function() {
+        const ds = window.currentSedeConfigData.datos_sede;
+        
+        // Populate inputs
+        document.getElementById('datosSedeNombre').value = ds.nombre;
+        document.getElementById('datosSedeDescripcion').value = ds.descripcion || '';
+        document.getElementById('datosSedeLatitud').value = ds.latitud;
+        document.getElementById('datosSedeLongitud').value = ds.longitud;
+        
+        // Populate sectors select
+        const select = document.getElementById('datosSedeSectorSelect');
+        let html = '<option value="">-- Sin Sector --</option>';
+        window.currentSedeConfigData.sectores.forEach(sec => {
+            const sel = sec.id == ds.sector_id ? 'selected' : '';
+            html += `<option value="${sec.id}" ${sel}>${sec.nombre} (Prefijo: ${sec.prefijo_comercial})</option>`;
+        });
+        select.innerHTML = html;
+        
+        // Show container
+        document.getElementById('sedeTabDatos').style.display = 'block';
+    };
+
+    // Form submission
+    document.getElementById('sedeDatosForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const data = {
+            sede_id: window.currentSedeId,
+            nombre: fd.get('nombre'),
+            descripcion: fd.get('descripcion'),
+            sector_id: fd.get('sector_id'),
+            latitud: fd.get('latitud'),
+            longitud: fd.get('longitud')
+        };
+
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="svg-loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Guardando...`;
+
+        try {
+            const resp = await fetch('/api/sede/config/datos/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': window.getCookie('csrftoken') },
+                body: JSON.stringify(data)
+            });
+            const res = await resp.json();
+            if (res.status === 'success') {
+                await window.openSedeConfig(window.currentSedeId, 'datos');
+                alert('Datos de Sede guardados exitosamente. El nombre ha sido recalculado por el trigger.');
+            } else {
+                alert(`Error: ${res.message}`);
+                btn.disabled = false;
+                btn.innerHTML = `${GLOBAL_ICONS.save()} Guardar Cambios`;
+            }
+        } catch (err) {
+            alert('Error al guardar datos de sede.');
+            btn.disabled = false;
+            btn.innerHTML = `${GLOBAL_ICONS.save()} Guardar Cambios`;
+        }
+    });
+})();
+</script>

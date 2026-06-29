@@ -1,0 +1,2 @@
+:root { --bg-primary: #ffffff; --text-primary: #000000; --border-radius: 8px; } 
+@media (max-width: 768px) { :root { --container-padding: 10px; } } 

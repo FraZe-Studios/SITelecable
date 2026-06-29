@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tipo_comprobante }} - {{ serie }}-{{ correlativo }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11px;
+            color: #000;
+            background: #f3f4f6;
+            padding: 20px;
+            line-height: 1.3;
+        }
+
+        .no-print-toolbar {
+            max-width: 850px;
+            margin: 0 auto 15px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .no-print-toolbar button {
+            padding: 6px 14px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #fff;
+            color: #374151;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .no-print-toolbar button:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+
+        .no-print-toolbar button.btn-primary {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb;
+        }
+
+        .no-print-toolbar button.btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* A4 Layout Container */
+        .factura-container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            min-height: 540px;
+            position: relative;
+        }
+
+        /* Top Header */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            margin-bottom: 15px;
+            gap: 20px;
+        }
+
+        .logo-emisor-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            flex-grow: 1;
+        }
+
+        .logo-img {
+            max-height: 55px;
+            max-width: 140px;
+            object-fit: contain;
+        }
+
+        .emisor-details {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .emisor-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .emisor-info {
+            font-size: 10px;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        /* RUC Box (Top Right) */
+        .ruc-box {
+            width: 280px;
+            border: 2px solid #000;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            text-align: center;
+            background: #fff;
+        }
+
+        .ruc-number {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .comprobante-title {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .comprobante-serie {
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        /* Cliente / Subscriber Information Box */
+        .cliente-box {
+            border: 1px solid #000;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .cliente-left {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            row-gap: 4px;
+            column-gap: 8px;
+        }
+
+        .cliente-right {
+            width: 250px;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            row-gap: 4px;
+            column-gap: 8px;
+        }
+
+        .label-field {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .value-field {
+            color: #000;
+        }
+
+        /* Items Table */
+        .table-section {
+            border: 1px solid #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .items-table th {
+            background: #fff;
+            color: #000;
+            font-weight: bold;
+            border-bottom: 1px solid #000;
+            padding: 6px 8px;
+            font-size: 10.5px;
+        }
+
+        .items-table td {
+            padding: 8px;
+            border-bottom: 1px solid #000;
+            font-size: 10.5px;
+            vertical-align: middle;
+        }
+
+        .items-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Table Column Widths & Alignments */
+        .col-cant { width: 10%; text-align: center; border-right: 1px solid #000; }
+        .col-und { width: 10%; text-align: center; border-right: 1px solid #000; }
+        .col-desc { width: 48%; border-right: 1px solid #000; }
+        .col-precio { width: 12%; text-align: right; border-right: 1px solid #000; }
+        .col-dscto { width: 10%; text-align: center; border-right: 1px solid #000; }
+        .col-total { width: 10%; text-align: right; }
+
+        /* Bottom section with Details & Totals */
+        .bottom-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-top: 15px;
+            gap: 15px;
+        }
+
+        .summary-left {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .total-letras {
+            font-weight: bold;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .date-pago-venc {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-bottom: 8px;
+        }
+
+        .representation-text {
+            font-size: 9px;
+            color: #555;
+            line-height: 1.3;
+        }
+
+        .qr-container {
+            width: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .qr-img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        /* Totals Box */
+        .totals-box {
+            width: 250px;
+            border: 1px solid #000;
+            border-radius: 8px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: #fff;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+        }
+
+        .total-row.grand-total {
+            border-top: 1px solid #000;
+            padding-top: 4px;
+            margin-top: 2px;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        /* Thermal Ticket View (Optional) */
+        .ticket-view-container {
+            max-width: 380px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 15px;
+            border: 1px dashed #9ca3af;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .ticket-header-block {
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 8px;
+        }
+
+        .ticket-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        .ticket-meta-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2px;
+            font-size: 9.5px;
+        }
+
+        .ticket-divider {
+            border-top: 1px dashed #000;
+            margin: 8px 0;
+        }
+
+        .ticket-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5px;
+            margin-bottom: 8px;
+        }
+
+        .ticket-table th {
+            border-bottom: 1px dashed #000;
+            padding: 3px 0;
+            text-align: left;
+        }
+
+        .ticket-table td {
+            padding: 4px 0;
+            vertical-align: top;
+        }
+
+        .ticket-totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5px;
+        }
+
+        .ticket-totals-table td {
+            padding: 2px 0;
+        }
+
+        /* Print Media Styles */
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+                font-size: 10px;
+            }
+
+            .no-print-toolbar {
+                display: none !important;
+            }
+
+            .factura-container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                border-radius: 0;
+            }
+
+            .ticket-view-container {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    {% if es_vista_previa %}
+    <!-- Preview Info Banner -->
+    <div class="no-print-toolbar" style="background: #fffbeb; border: 1px solid #fef3c7; color: #b45309; justify-content: center; font-weight: bold; gap: 10px;">
+        MODO VISTA PREVIA — COMPROBANTE SIN VALOR LEGAL
+    </div>
+    {% endif %}
+
+    <!-- Top Action Toolbar -->
+    <div class="no-print-toolbar">
+        <div class="view-toggle">
+            <button onclick="switchView('a4')" id="btn-view-a4" class="btn-primary">Formato A4</button>
+            <button onclick="switchView('ticket')" id="btn-view-ticket">Formato Ticket</button>
+        </div>
+        <div>
+            <button onclick="window.print()">Imprimir</button>
+        </div>
+    </div>
+
+    <!-- 1. A4 Format (Exact replica of Factura.jpeg) -->
+    <div class="factura-container" id="view-a4">
+        <div class="header-section">
+            <div class="logo-emisor-box">
+                {% if logo_url %}
+                    <img src="{{ logo_url }}" alt="Logo" class="logo-img">
+                {% else %}
+                    <div style="font-size: 24px; font-weight: 800; color: #1e40af; letter-spacing: -1px; text-transform: lowercase;">
+                        <span style="color:#0284c7">T</span>elecable
+                    </div>
+                {% endif %}
+                <div class="emisor-details">
+                    <h1 class="emisor-name">{{ razon_social|default:"SPEEDY QUANTICO E.I.R.L." }}</h1>
+                    <p class="emisor-info">{{ direccion_fiscal|default:"Av. Miguel Grau 145 - Marcavalle, La Oroya" }}</p>
+                    <p class="emisor-info">Teléfono {{ telefono|default:"064466080" }}</p>
+                </div>
+            </div>
+            <div class="ruc-box">
+                <div class="ruc-number">R.U.C. {{ ruc_emisor|default:"20610526455" }}</div>
+                <div class="comprobante-title"><strong>{{ tipo_comprobante|default:"BOLETA ELECTRÓNICA" }}</strong></div>
+                <div class="comprobante-serie">{{ serie|default:"S021" }}-{{ correlativo|default:"0003853" }}</div>
+            </div>
+        </div>
+
+        <div class="cliente-box">
+            <div class="cliente-left">
+                <span class="label-field">Abonado</span>
+                <span class="value-field">: {{ cliente_nombre|upper }}</span>
+
+                <span class="label-field">D.N.I.</span>
+                <span class="value-field">: {{ cliente_documento }}</span>
+
+                <span class="label-field">Código</span>
+                <span class="value-field">: {{ cliente_codigo|default:"—" }}</span>
+
+                <span class="label-field">Dirección</span>
+                <span class="value-field">: {{ cliente_direccion|upper }}</span>
+            </div>
+            <div class="cliente-right">
+                <span class="label-field">F. Emisión</span>
+                <span class="value-field">: {{ fecha_emision }}</span>
+
+                <span class="label-field">Moneda</span>
+                <span class="value-field">: SOLES</span>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th class="col-cant">Cantidad</th>
+                        <th class="col-und">Unidad</th>
+                        <th class="col-desc">Descripción</th>
+                        <th class="col-precio">Precio unitario</th>
+                        <th class="col-dscto">Descuento</th>
+                        <th class="col-total">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="col-cant">{{ item.cantidad }}</td>
+                        <td class="col-und">SERVICIO</td>
+                        <td class="col-desc">{{ item.descripcion|upper }}</td>
+                        <td class="col-precio">{{ item.precio_unitario }}</td>
+                        <td class="col-dscto">0</td>
+                        <td class="col-total">{{ item.subtotal }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td class="col-cant">1.00000</td>
+                        <td class="col-und">SERVICIO</td>
+                        <td class="col-desc">COD {{ cliente_codigo }} DUO RESIDENCIAL 300MG MARZO 2026</td>
+                        <td class="col-precio">{{ subtotal }}</td>
+                        <td class="col-dscto">0</td>
+                        <td class="col-total">{{ subtotal }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bottom-section">
+            <div class="summary-left">
+                <div class="total-letras" id="total-letras-span">
+                    SON: OCHENTA Y CINCO Y 00/100 SOLES
+                </div>
+                <div class="date-pago-venc">
+                    <div><strong>Fecha de vencimiento:</strong> {{ fecha_vencimiento|default:"—" }}</div>
+                    <div><strong>Fecha de cancelación:</strong> {{ fecha_emision|slice:":10" }}</div>
+                </div>
+                <div class="representation-text">
+                    Resumen: {{ codigo_hash|default:"X+XIV7e7iP8ZgBLkl6nDxZkLxl=" }}<br>
+                    Representación impresa de {{ tipo_comprobante|default:"BOLETA ELECTRÓNICA" }}
+                </div>
+            </div>
+
+            <div class="qr-container">
+                <img src="{{ qr_url }}" alt="QR" class="qr-img">
+            </div>
+
+            <div class="totals-box">
+                <div class="total-row">
+                    <span>Op. Gravada</span>
+                    <span>S/ {{ subtotal }}</span>
+                </div>
+                <div class="total-row">
+                    <span>Op. Exonerada</span>
+                    <span>S/ 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Op. Inafecta</span>
+                    <span>S/ 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Op. Gratuita</span>
+                    <span>S/ 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>Total Dscto</span>
+                    <span>S/ 0.00</span>
+                </div>
+                <div class="total-row">
+                    <span>I.G.V.</span>
+                    <span>S/ {{ total_igv }}</span>
+                </div>
+                <div class="total-row grand-total">
+                    <span>Importe Total</span>
+                    <span>S/ {{ total }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Thermal Ticket Format (Fallback) -->
+    <div class="ticket-view-container" id="view-ticket" style="display: none;">
+        <div class="ticket-header-block">
+            {% if logo_url %}
+                <img src="{{ logo_url }}" alt="Logo" style="max-height: 40px; margin-bottom: 5px;">
+            {% endif %}
+            <div style="font-weight: bold; font-size: 11px; text-transform: uppercase;">{{ razon_social|default:"SPEEDY QUANTICO E.I.R.L." }}</div>
+            <div style="font-size: 8.5px; color: #333;">{{ direccion_fiscal }}</div>
+            <div style="font-size: 8.5px; color: #333;">RUC: {{ ruc_emisor }}</div>
+            <div class="ticket-divider"></div>
+            <div class="ticket-title">{{ tipo_comprobante|default:"RECIBO ELECTRÓNICO" }}</div>
+            <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">{{ serie }}-{{ correlativo }}</div>
+        </div>
+
+        <div class="ticket-meta-row">
+            <strong>Fecha:</strong>
+            <span>{{ fecha_emision }}</span>
+        </div>
+        <div class="ticket-meta-row">
+            <strong>Cliente:</strong>
+            <span>{{ cliente_nombre|upper }}</span>
+        </div>
+        <div class="ticket-meta-row">
+            <strong>DNI/RUC:</strong>
+            <span>{{ cliente_documento }}</span>
+        </div>
+        <div class="ticket-meta-row">
+            <strong>Código:</strong>
+            <span>{{ cliente_codigo|default:"—" }}</span>
+        </div>
+
+        <div class="ticket-divider"></div>
+
+        <table class="ticket-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%; text-align: center;">CANT</th>
+                    <th style="width: 65%;">DESCRIPCIÓN</th>
+                    <th style="width: 20%; text-align: right;">TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td style="text-align: center;">{{ item.cantidad|floatformat:0 }}</td>
+                    <td>{{ item.descripcion|upper }}</td>
+                    <td style="text-align: right;">S/ {{ item.subtotal }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td style="text-align: center;">1</td>
+                    <td>SERVICIO DE INTERNET / TV CABLE</td>
+                    <td style="text-align: right;">S/ {{ subtotal }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="ticket-divider"></div>
+
+        <table class="ticket-totals-table">
+            <tr>
+                <td>Op. Gravada:</td>
+                <td style="text-align: right;">S/ {{ subtotal }}</td>
+            </tr>
+            <tr>
+                <td>I.G.V. (18%):</td>
+                <td style="text-align: right;">S/ {{ total_igv }}</td>
+            </tr>
+            <tr style="font-weight: bold; font-size: 11px;">
+                <td>TOTAL:</td>
+                <td style="text-align: right;">S/ {{ total }}</td>
+            </tr>
+        </table>
+
+        <div class="ticket-divider"></div>
+
+        <div style="text-align: center; margin-top: 10px;">
+            <img src="{{ qr_url }}" alt="QR" style="width: 80px; height: 80px; margin-bottom: 5px;">
+            <p style="font-size: 8px; color: #555;">Representación impresa de Comprobante Electrónico</p>
+            <p style="font-size: 7.5px; font-family: monospace; word-break: break-all;">{{ codigo_hash }}</p>
+        </div>
+    </div>
+
+    <script>
+        function switchView(view) {
+            const viewA4 = document.getElementById('view-a4');
+            const viewTicket = document.getElementById('view-ticket');
+            const btnA4 = document.getElementById('btn-view-a4');
+            const btnTicket = document.getElementById('btn-view-ticket');
+
+            if (view === 'a4') {
+                viewA4.style.display = 'block';
+                viewTicket.style.display = 'none';
+                btnA4.classList.add('btn-primary');
+                btnTicket.classList.remove('btn-primary');
+            } else {
+                viewA4.style.display = 'none';
+                viewTicket.style.display = 'block';
+                btnA4.classList.remove('btn-primary');
+                btnTicket.classList.add('btn-primary');
+            }
+        }
+
+        // Helper to convert total to letters dynamically (in Spanish)
+        function numeroALetras(num) {
+            const centavos = Math.round((num - Math.floor(num)) * 100);
+            const entero = Math.floor(num);
+            
+            const unidades = ["", "UN", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE"];
+            const decenas = ["", "DIEZ", "VEINTE", "TREINTA", "CUARENTA", "CINCUENTA", "SESENTA", "SETENTA", "OCHENTA", "NOVENTA"];
+            const especiales = {
+                11: "ONCE", 12: "DOCE", 13: "TRECE", 14: "CATORCE", 15: "QUINCE",
+                16: "DIECISEIS", 17: "DIECISIETE", 18: "DIECIOCHO", 19: "DIECINUEVE",
+                21: "VEINTIUNO", 22: "VEINTIDOS", 23: "VEINTITRES", 24: "VEINTICUATRO",
+                25: "VEINTICINCO", 26: "VEINTISEIS", 27: "VEINTISIETE", 28: "VEINTIOCHO", 29: "VEINTINUEVE"
+            };
+            const centenas = ["", "CIENTO", "DOSCIENTOS", "TRESCIENTOS", "CUATROCIENTOS", "QUINIENTOS", "SEISCIENTOS", "SETECIENTOS", "OCHOCIENTOS", "NOVECIENTOS"];
+
+            function getDecenas(n) {
+                if (n < 10) return unidades[n];
+                if (n in especiales) return especiales[n];
+                const u = n % 10;
+                const d = Math.floor(n / 10);
+                if (u === 0) return decenas[d];
+                return decenas[d] + " Y " + unidades[u];
+            }
+
+            function getCentenas(n) {
+                if (n === 100) return "CIEN";
+                const d = n % 100;
+                const c = Math.floor(n / 100);
+                return centenas[c] + " " + getDecenas(d);
+            }
+
+            let texto = "";
+            if (entero === 0) texto = "CERO";
+            else if (entero < 100) texto = getDecenas(entero);
+            else if (entero < 1000) texto = getCentenas(entero);
+            else {
+                // Simplificado para montos de facturación típicos (< 10,000)
+                const mil = Math.floor(entero / 1000);
+                const resto = entero % 1000;
+                const milTexto = mil === 1 ? "MIL" : getDecenas(mil) + " MIL";
+                const restoTexto = resto === 0 ? "" : (resto < 100 ? getDecenas(resto) : getCentenas(resto));
+                texto = milTexto + " " + restoTexto;
+            }
+
+            const centavosStr = String(centavos).padStart(2, '0') + "/100 SOLES";
+            return "SON: " + texto.trim() + " Y " + centavosStr;
+        }
+
+        // Run conversion on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const totalVal = parseFloat("{{ total }}") || 85.00;
+            const textSpan = document.getElementById('total-letras-span');
+            if (textSpan) {
+                textSpan.textContent = numeroALetras(totalVal);
+            }
+        });
+    </script>
+</body>
+</html>

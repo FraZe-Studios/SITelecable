@@ -1,0 +1,239 @@
+/* =============================================================================
+   SIT Telecable - Hoja de Estilos de Componentes Reutilizables (componentes.css)
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. ALERTAS EN LÍNEA (INLINE BANNERS)
+   ----------------------------------------------------------------------------- */
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    font-weight: 500;
+    border: var(--border-thin) solid transparent;
+    box-shadow: var(--shadow-sm);
+    transition: opacity var(--transition-normal), transform var(--transition-normal);
+    animation: alert-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes alert-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Temas de Alertas */
+.alert-danger {
+    background-color: var(--danger-glow);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+}
+[data-theme="dark"] .alert-danger {
+    border-color: rgba(248, 113, 113, 0.2);
+}
+
+.alert-warning {
+    background-color: var(--warning-glow);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+[data-theme="dark"] .alert-warning {
+    border-color: rgba(251, 191, 36, 0.2);
+}
+
+.alert-success {
+    background-color: var(--success-glow);
+    border-color: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+[data-theme="dark"] .alert-success {
+    border-color: rgba(52, 211, 153, 0.2);
+}
+
+.alert-info {
+    background-color: var(--info-glow);
+    border-color: rgba(14, 165, 233, 0.2);
+    color: var(--info);
+}
+[data-theme="dark"] .alert-info {
+    border-color: rgba(56, 189, 248, 0.2);
+}
+
+/* Iconos de Alertas */
+.alert svg.svg-icon {
+    width: 20px;
+    height: 20px;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.alert-danger svg.svg-icon { color: var(--danger); }
+.alert-warning svg.svg-icon { color: var(--warning); }
+.alert-success svg.svg-icon { color: var(--success); }
+.alert-info svg.svg-icon { color: var(--info); }
+
+/* Botón de Cerrar en Alertas */
+.alert-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: currentColor;
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-xs);
+    transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.alert-close:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .alert-close:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.alert-close svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* -----------------------------------------------------------------------------
+   2. NOTIFICACIONES FLOTANTES (TOAST NOTIFICATIONS)
+   ----------------------------------------------------------------------------- */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 380px;
+    width: calc(100% - 48px);
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface);
+    border: var(--border-thin) solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    font-weight: 500;
+    pointer-events: auto;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: toast-slide-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes toast-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(120%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.toast.toast-fade-out {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+}
+
+/* Barra de Acento Lateral */
+.toast::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--primary);
+}
+
+.toast-danger::before { background-color: var(--danger); }
+.toast-warning::before { background-color: var(--warning); }
+.toast-success::before { background-color: var(--success); }
+.toast-info::before { background-color: var(--info); }
+
+/* Colores de Icono en Toasts */
+.toast svg.svg-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.toast-danger svg.svg-icon { color: var(--danger); }
+.toast-warning svg.svg-icon { color: var(--warning); }
+.toast-success svg.svg-icon { color: var(--success); }
+.toast-info svg.svg-icon { color: var(--info); }
+
+.toast-content {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+/* Botón de Cerrar en Toasts */
+.toast-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 0.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-xs);
+    transition: opacity var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.toast-close:hover {
+    opacity: 1;
+    color: var(--text-primary);
+    background-color: var(--bg-surface-hover);
+}
+
+.toast-close svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+/* Ajustes de responsividad */
+@media (max-width: 480px) {
+    .toast-container {
+        top: 16px;
+        right: 16px;
+        left: 16px;
+        width: auto;
+        max-width: none;
+    }
+}

@@ -1,0 +1,22 @@
+{% load static %}
+<!-- ══ MODAL: AÑADIR / EDITAR ELEMENTO ════════════════════════════════════ -->
+<div class="org-modal-overlay" id="orgModalOverlay" role="dialog" aria-modal="true">
+    <div class="org-modal">
+        <div class="org-modal-header">
+            <div class="org-modal-title">
+                <span class="org-modal-title-dot" id="modalTitleDot"></span>
+                <span id="orgModalTitle">Nuevo Elemento</span>
+            </div>
+            <button class="org-modal-close" id="orgModalClose" aria-label="Cerrar" title="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="org-modal-body" id="orgModalBody"></div>
+        <div class="org-modal-footer">
+            <button type="button" class="btn-cancel" id="orgModalCancel" title="Cancelar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Cancelar</button>
+            <button type="button" class="btn-save" id="orgModalSave" title="Guardar Cambios">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Guardar
+            </button>
+        </div>
+    </div>
+</div>

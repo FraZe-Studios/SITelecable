@@ -1,0 +1,689 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caja Diaria | SIT Telecable</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Global CSS -->
+    <link rel="stylesheet" href="{% static 'global/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/componentes.css' %}">
+    
+    <style>
+        .caja-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            animation: fadeIn 0.4s ease-out;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cabecera del Módulo */
+        .caja-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.01);
+        }
+
+        .header-info h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .header-info p {
+            color: var(--text-muted);
+            margin: 0.25rem 0 0 0;
+            font-size: 0.85rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Controles de fecha y filtros */
+        .filter-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-surface-active);
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.75rem;
+            border-radius: 10px;
+        }
+
+        .filter-control label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .filter-control input, .filter-control select {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            outline: none;
+        }
+
+        /* KPIs de Caja */
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.01);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.03);
+        }
+
+        .kpi-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-color);
+            margin: 0.25rem 0;
+        }
+
+        .kpi-breakdown {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px dashed var(--border-color);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .kpi-breakdown span strong {
+            color: var(--text-color);
+        }
+
+        /* Colores temáticos */
+        .text-green { color: #10b981 !important; }
+        .text-blue { color: #3b82f6 !important; }
+        .text-orange { color: #f59e0b !important; }
+        .text-red { color: #ef4444 !important; }
+
+        /* Panel Principal de dos columnas */
+        .caja-panels {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            .caja-panels {
+                grid-template-columns: 350px 1fr;
+            }
+            .caja-panels.admin-active {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Formularios y controles */
+        .panel-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card-form {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.01);
+        }
+
+        .card-form-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.4rem;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-surface-active);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.6rem 0.8rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: var(--primary-color);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: filter 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-submit:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Indicadores de permiso */
+        .permits-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.01);
+        }
+
+        .permit-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem;
+        }
+
+        .permit-item:last-child {
+            border-bottom: none;
+        }
+
+        .permit-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .badge-authorized {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        .badge-denied {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        /* Historial y tablas */
+        .history-main-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.01);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .table-section-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .caja-table-container {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .caja-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        .caja-table th {
+            background: var(--bg-surface-active);
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .caja-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .caja-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge-movement {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .badge-entrada { background: #d1fae5; color: #10b981; }
+        .badge-salida { background: #fee2e2; color: #ef4444; }
+
+        /* Panel de Configuración de Cajeros (Admin) */
+        .admin-config-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.01);
+            margin-top: 1.5rem;
+        }
+
+        /* Toggle switches */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 42px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: .3s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        {% include "global/navbar.html" %}
+        
+        <div class="app-wrapper">
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <div class="caja-wrapper">
+                
+                <!-- Cabecera Premium -->
+                <header class="caja-header">
+                    <div class="header-info">
+                        <h2>Caja Diaria Operativa</h2>
+                        <p id="caja-subtitle-info">Consolidado y registro de transacciones de la sede</p>
+                    </div>
+                    
+                    <div class="header-actions">
+                        <!-- Filtro de Fecha (Reinicio diario a las 00:00) -->
+                        <div class="filter-control">
+                            <label for="filtro-fecha">Fecha:</label>
+                            <input type="date" id="filtro-fecha" onchange="cargarDatosCaja()">
+                        </div>
+
+                        <!-- Selector de Caja Activa / Filtro de Caja -->
+                        <div class="filter-control" id="filtro-caja-container">
+                            <label for="filtro-caja">Caja:</label>
+                            <select id="filtro-caja" onchange="seleccionarCaja(this.value)">
+                                <!-- Rellenado por JS -->
+                            </select>
+                        </div>
+
+                        <!-- Filtro de Sede (Solo Admin) -->
+                        <div class="filter-control" id="filtro-sede-container" style="display: none;">
+                            <label for="filtro-sede">Sede:</label>
+                            <select id="filtro-sede" onchange="cargarDatosCaja()">
+                                <!-- Rellenado por JS -->
+                            </select>
+                        </div>
+
+                        <!-- Filtro de Personal (Solo Admin) -->
+                        <div class="filter-control" id="filtro-usuario-container" style="display: none;">
+                            <label for="filtro-usuario">Personal:</label>
+                            <select id="filtro-usuario" onchange="cargarDatosCaja()">
+                                <option value="all">Todos los cajeros</option>
+                                <!-- Rellenado por JS -->
+                            </select>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Tarjetas KPI -->
+                <section class="kpi-container">
+                    
+                    <!-- KPI Caja Sede -->
+                    <div class="kpi-card" style="border-left: 4px solid var(--primary-color);">
+                        <div>
+                            <span class="kpi-title" id="kpi-sede-title">Caja Consolidada Sede</span>
+                            <div class="kpi-value text-blue" id="kpi-sede-neto">S/ 0.00</div>
+                        </div>
+                        <div class="kpi-breakdown">
+                            <span>Ingresos: <strong class="text-green" id="kpi-sede-ingresos">S/ 0.00</strong></span>
+                            <span>Egresos: <strong class="text-red" id="kpi-sede-egresos">S/ 0.00</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- KPI Caja Personal -->
+                    <div class="kpi-card" id="card-kpi-personal" style="border-left: 4px solid #10b981;">
+                        <div>
+                            <span class="kpi-title">Mi Caja Personal (Hoy)</span>
+                            <div class="kpi-value text-green" id="kpi-personal-neto">S/ 0.00</div>
+                        </div>
+                        <div class="kpi-breakdown">
+                            <span>Ingresos: <strong class="text-green" id="kpi-personal-ingresos">S/ 0.00</strong></span>
+                            <span>Egresos: <strong class="text-red" id="kpi-personal-egresos">S/ 0.00</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- desglose de métodos de pago consolidado -->
+                    <div class="kpi-card" style="border-left: 4px solid #f59e0b;">
+                        <div>
+                            <span class="kpi-title">Medios de Pago Sede</span>
+                            <div class="kpi-value text-orange" id="kpi-sede-tot-global">S/ 0.00</div>
+                        </div>
+                        <div class="kpi-breakdown">
+                            <span>Efectivo: <strong id="kpi-metodo-efectivo">S/ 0.00</strong></span>
+                            <span>Transf.: <strong id="kpi-metodo-transferencia">S/ 0.00</strong></span>
+                            <span>Otros: <strong id="kpi-metodo-otros">S/ 0.00</strong></span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Paneles de Movimientos y Registro -->
+                <section class="caja-panels" id="caja-panels-layout">
+                    
+                    <!-- Columna Izquierda: Registro e Indicador de Permisos -->
+                    <div class="panel-sidebar" id="caja-sidebar-left">
+                        
+                        <!-- Permisos del Cajero -->
+                        <div class="permits-card" id="card-permisos-cajero">
+                            <h3 class="card-form-title">
+                                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 1.1rem; height: 1.1rem;">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                Mis Permisos de Cobro
+                            </h3>
+                            <div class="permit-item">
+                                <span>Cobros en Efectivo</span>
+                                <span class="permit-badge badge-denied" id="permiso-badge-efectivo">No Permitido</span>
+                            </div>
+                            <div class="permit-item">
+                                <span>Cobros por Transferencia</span>
+                                <span class="permit-badge badge-denied" id="permiso-badge-transferencia">No Permitido</span>
+                            </div>
+                        </div>
+
+                        <!-- Formulario de Registro de Movimiento -->
+                        <div class="card-form" id="card-registro-movimiento">
+                            <h3 class="card-form-title">
+                                <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 1.1rem; height: 1.1rem;">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                                </svg>
+                                Registrar Movimiento
+                            </h3>
+                            <form id="form-registrar-movimiento" onsubmit="registrarMovimiento(event)">
+                                <div class="form-group">
+                                    <label for="tipo_movimiento">Tipo Movimiento *</label>
+                                    <select id="tipo_movimiento" class="form-input" required>
+                                        <option value="entrada_pago">Entrada (Cobro / Ingreso)</option>
+                                        <option value="salida_gasto">Salida (Gasto / Egreso)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="metodo_pago">Método de Pago *</label>
+                                    <select id="metodo_pago" class="form-input" required>
+                                        <option value="efectivo">Efectivo</option>
+                                        <option value="transferencia">Transferencia Bancaria</option>
+                                        <option value="otros">Otros</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="monto">Monto (S/) *</label>
+                                    <input type="number" id="monto" class="form-input" step="0.01" min="0.01" placeholder="0.00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="descripcion">Descripción / Concepto *</label>
+                                    <textarea id="descripcion" class="form-input" rows="3" placeholder="Ej. Pago recibo internet abonado cod 1024..." required style="resize: none;"></textarea>
+                                </div>
+                                <button type="submit" class="btn-submit">
+                                    Guardar Transacción
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Tablas de Historial Diario -->
+                    <div class="history-main-panel">
+                        
+                        <!-- Historial Personal del Cajero (No se muestra si es Admin total) -->
+                        <div id="seccion-tabla-personal">
+                            <h3 class="table-section-title">
+                                <span>Mis Transacciones Registradas</span>
+                                <span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);">Cuadre de caja individual</span>
+                            </h3>
+                            <div class="caja-table-container">
+                                <table class="caja-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha/Hora</th>
+                                            <th>Tipo</th>
+                                            <th>Método</th>
+                                            <th>Monto</th>
+                                            <th>Concepto / Descripción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-movimientos-personal">
+                                        <!-- Rellenado por JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Historial Consolidado de la Sede -->
+                        <div id="seccion-tabla-sede">
+                            <h3 class="table-section-title">
+                                <span id="consolidado-table-title">Transacciones Consolidadas de la Sede</span>
+                                <span style="font-size:0.75rem;font-weight:normal;color:var(--text-muted);" id="consolidado-table-subtitle">Cuadre general de caja</span>
+                            </h3>
+                            <div class="caja-table-container">
+                                <table class="caja-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha/Hora</th>
+                                            <th id="th-usuario-caja">Usuario</th>
+                                            <th>Tipo</th>
+                                            <th>Método</th>
+                                            <th>Monto</th>
+                                            <th>Concepto / Descripción</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lista-movimientos-consolidado">
+                                        <!-- Rellenado por JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- Panel Administrativo: Gestión de Permisos de Cajeros -->
+                <section class="admin-config-panel" id="panel-admin-permisos" style="display: none;">
+                    <h3 class="card-form-title" style="margin-bottom:1.5rem;">
+                        <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 1.2rem; height: 1.2rem;">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        Administración de Permisos de Medios de Pago
+                    </h3>
+                    
+                    <div class="caja-table-container">
+                        <table class="caja-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuario / Cajero</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Rol / Cargo</th>
+                                    <th style="text-align: center;">Permiso Efectivo</th>
+                                    <th style="text-align: center;">Permiso Transferencia</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-admin-cajeros">
+                                <!-- Rellenado por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+        </div>
+    </div>
+
+    <script>
+        // Si no existe SITAlert localmente para pruebas, crear fallback inerte
+        if (typeof window.SITAlert === 'undefined') {
+            window.SITAlert = {
+                show: function(message, type) {
+                    const banner = document.createElement('div');
+                    banner.style.position = 'fixed';
+                    banner.style.bottom = '20px';
+                    banner.style.right = '20px';
+                    banner.style.padding = '10px 20px';
+                    banner.style.borderRadius = '8px';
+                    banner.style.color = '#fff';
+                    banner.style.zIndex = '9999';
+                    banner.style.fontFamily = 'Outfit, sans-serif';
+                    banner.style.fontSize = '0.9rem';
+                    banner.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                    banner.style.background = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#f59e0b';
+                    banner.textContent = message;
+                    document.body.appendChild(banner);
+                    setTimeout(() => banner.remove(), 4000);
+                }
+            };
+        }
+    </script>
+    <script src="{% static 'js/caja/caja.js' %}"></script>
+</body>
+</html>

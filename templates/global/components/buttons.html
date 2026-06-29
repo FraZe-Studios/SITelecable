@@ -1,0 +1,37 @@
+{% load static %}
+<!-- ══ COMPONENTES GLOBALES DE BOTONES ════════════════════════════════════ -->
+
+<!-- Botón Primario (Azul) -->
+{% if button_type == 'primary' %}
+<button type="{{ button_type|default:'button' }}" class="btn btn-primary" {% if id %}id="{{ id }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {% if disabled %}disabled{% endif %} title="{{ title|default:'' }}">
+    {% if icon %}{{ icon }}{% endif %}
+    {% if text %}<span>{{ text }}</span>{% endif %}
+</button>
+
+<!-- Botón Secundario -->
+{% elif button_type == 'secondary' %}
+<button type="{{ button_type|default:'button' }}" class="btn btn-secondary" {% if id %}id="{{ id }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {% if disabled %}disabled{% endif %} title="{{ title|default:'' }}">
+    {% if icon %}{{ icon }}{% endif %}
+    {% if text %}<span>{{ text }}</span>{% endif %}
+</button>
+
+<!-- Botón de Peligro (Rojo) -->
+{% elif button_type == 'danger' %}
+<button type="{{ button_type|default:'button' }}" class="btn btn-danger" {% if id %}id="{{ id }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {% if disabled %}disabled{% endif %} title="{{ title|default:'' }}">
+    {% if icon %}{{ icon }}{% endif %}
+    {% if text %}<span>{{ text }}</span>{% endif %}
+</button>
+
+<!-- Botón de Éxito (Verde) -->
+{% elif button_type == 'success' %}
+<button type="{{ button_type|default:'button' }}" class="btn btn-success" {% if id %}id="{{ id }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {% if disabled %}disabled{% endif %} title="{{ title|default:'' }}">
+    {% if icon %}{{ icon }}{% endif %}
+    {% if text %}<span>{{ text }}</span>{% endif %}
+</button>
+
+<!-- Botón Icon Only (Solo icono) -->
+{% elif button_type == 'icon-only' %}
+<button type="{{ button_type|default:'button' }}" class="btn btn-icon-only btn-{{ variant|default:'secondary' }}" {% if id %}id="{{ id }}"{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %} {% if disabled %}disabled{% endif %} title="{{ title|default:'' }}">
+    {{ icon }}
+</button>
+{% endif %}

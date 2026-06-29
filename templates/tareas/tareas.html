@@ -1,0 +1,930 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificaciones ATC | SIT Telecable</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'global/css/global.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'global/css/componentes.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* ─── Layout ─── */
+        .atc-container {
+            padding: 1.5rem;
+            animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Encabezado ─── */
+        .atc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.75rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .atc-title h1 {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--text-color);
+            margin: 0 0 0.2rem 0;
+        }
+        .atc-title p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        /* ─── KPI Grid ─── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.75rem;
+        }
+        .kpi-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        .kpi-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            color: white;
+        }
+        .kpi-icon.red    { background: linear-gradient(135deg,#ef4444,#dc2626); }
+        .kpi-icon.orange { background: linear-gradient(135deg,#f97316,#ea580c); }
+        .kpi-icon.yellow { background: linear-gradient(135deg,#f59e0b,#d97706); }
+        .kpi-icon.green  { background: linear-gradient(135deg,#10b981,#059669); }
+        .kpi-icon.blue   { background: linear-gradient(135deg,#3b82f6,#2563eb); }
+        .kpi-info h4 {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin: 0 0 0.3rem;
+        }
+        .kpi-val {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            color: var(--text-color);
+        }
+        .kpi-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        /* ─── Tasa de cumplimiento ─── */
+        .tasa-bar-wrap {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.75rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .tasa-label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-color);
+            white-space: nowrap;
+        }
+        .tasa-bar-outer {
+            flex: 1;
+            min-width: 200px;
+            height: 14px;
+            background: var(--border-color);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .tasa-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            border-radius: 99px;
+            transition: width 0.8s ease;
+        }
+        .tasa-pct {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-color);
+            min-width: 60px;
+            text-align: right;
+        }
+        .tasa-msg {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* ─── Panel de lista ─── */
+        .panel-lista {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .panel-lista-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .filter-row {
+            display: flex;
+            gap: 0.4rem;
+            background: var(--bg-surface-active);
+            padding: 0.2rem;
+            border-radius: 8px;
+        }
+        .filter-btn {
+            background: transparent;
+            border: none;
+            padding: 0.45rem 1rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn.active {
+            background: var(--bg-surface);
+            color: var(--text-color);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .selector-op {
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-surface);
+            color: var(--text-color);
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+
+        /* ─── Tabla ─── */
+        .table-responsive { width: 100%; overflow-x: auto; }
+        .table-atc {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+        .table-atc th {
+            background: var(--bg-surface-active);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 0.65rem 0.85rem;
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+        .table-atc td {
+            padding: 0.9rem 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-color);
+            vertical-align: middle;
+        }
+        .table-atc tr:hover td { background: var(--bg-surface-active); }
+        .table-atc tr.row-critico td { background: rgba(239,68,68,0.04); }
+        .table-atc tr.row-urgente td { background: rgba(249,115,22,0.04); }
+        .table-atc tr.row-alerta  td { background: rgba(245,158,11,0.04); }
+
+        /* ─── Badges de urgencia ─── */
+        .badge-dias {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .badge-dias.vencida   { background:#fecaca; color:#b91c1c; animation: pulse 1.5s infinite; }
+        .badge-dias.critico   { background:#fee2e2; color:#dc2626; }
+        .badge-dias.urgente   { background:#ffedd5; color:#c2410c; }
+        .badge-dias.alerta    { background:#fef9c3; color:#a16207; }
+        .badge-dias.normal    { background:#dcfce7; color:#15803d; }
+
+        .badge-estado {
+            display: inline-block;
+            padding: 0.2rem 0.55rem;
+            border-radius: 99px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-pendiente  { background:#fef3c7; color:#d97706; }
+        .badge-notificado { background:#d1fae5; color:#059669; }
+        .badge-no_contesto{ background:#e0f2fe; color:#0284c7; }
+        .badge-sms        { background:#f0e6ff; color:#7c3aed; }
+        .badge-whatsapp   { background:#dcfce7; color:#15803d; }
+        .badge-rechazado  { background:#fee2e2; color:#dc2626; }
+
+        .badge-ciclo {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 5px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-ciclo.fin_mes { background:#dbeafe; color:#1d4ed8; }
+        .badge-ciclo.fecha_instalacion { background:#fce7f3; color:#be185d; }
+
+        @keyframes pulse {
+            0%,100% { opacity:1; }
+            50%      { opacity:0.65; }
+        }
+
+        /* Icono de cliente sin contacto */
+        .ico-sin-contacto {
+            color: #f59e0b;
+            font-size: 0.9rem;
+            margin-left: 0.3rem;
+            cursor: help;
+        }
+
+        /* Botón de acción */
+        .btn-notificar {
+            background: linear-gradient(135deg,#6366f1,#4f46e5);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.38rem 0.85rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+        .btn-notificar:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-completado {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* ─── Modal ─── */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.45);
+            display: none; align-items: center; justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            width: 100%; max-width: 520px;
+            padding: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            animation: modalPop 0.25s ease-out;
+        }
+        @keyframes modalPop {
+            from { opacity:0; transform: scale(0.95) translateY(-12px); }
+            to   { opacity:1; transform: scale(1) translateY(0); }
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+        .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text-color); margin:0; }
+        .modal-close-btn {
+            background: transparent; border: none;
+            color: var(--text-muted); cursor: pointer;
+            padding: 0.25rem; border-radius: 4px;
+            font-size: 1.2rem;
+            transition: color 0.2s;
+        }
+        .modal-close-btn:hover { color: var(--text-color); }
+        .modal-cliente-info {
+            background: var(--bg-surface-active);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        .modal-cliente-info strong { display: block; font-weight: 700; color: var(--text-color); margin-bottom: 0.25rem; }
+        .modal-cliente-info span { color: var(--text-muted); }
+        .form-group { margin-bottom: 1.1rem; }
+        .form-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-color); margin-bottom: 0.4rem; }
+        .form-select, .form-textarea {
+            width: 100%; padding: 0.55rem 0.75rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface); color: var(--text-color);
+            border-radius: 7px; font-size: 0.875rem; outline: none;
+        }
+        .form-select:focus, .form-textarea:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(99,102,241,0.2);
+        }
+        .modal-actions {
+            display: flex; justify-content: flex-end; gap: 0.75rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 1rem; margin-top: 1.25rem;
+        }
+        .btn-cancel {
+            background: var(--bg-surface-active);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 7px; padding: 0.5rem 1rem;
+            font-weight: 600; cursor: pointer;
+        }
+        .btn-guardar {
+            background: #4f46e5; color: white;
+            border: none; border-radius: 7px;
+            padding: 0.5rem 1.25rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-guardar:hover { background: #4338ca; }
+
+        /* ─── Panel rendimiento ATC (solo admin) ─── */
+        .panel-rendimiento {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .panel-rendimiento h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0 0 1rem 0;
+        }
+        .atc-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 0.75rem;
+        }
+        .atc-card {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.9rem 1rem;
+            background: var(--bg-surface-active);
+        }
+        .atc-card-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .atc-card-bar-outer {
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 0.4rem;
+        }
+        .atc-card-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg,#10b981,#3b82f6);
+            border-radius: 99px;
+            transition: width 0.7s ease;
+        }
+        .atc-card-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .atc-card-tasa {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        /* Estado vacío */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; }
+        .empty-state h4 { font-size: 1rem; font-weight: 600; margin-bottom: 0.35rem; }
+
+        /* Spinner de carga */
+        .loading-row td {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--text-muted);
+        }
+        .spinner {
+            display: inline-block;
+            width: 1.5rem; height: 1.5rem;
+            border: 3px solid var(--border-color);
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    {% include "global/navbar.html" %}
+    <div class="app-wrapper">
+        <main class="main-content">
+            <div class="atc-container">
+
+                <!-- Encabezado -->
+                <div class="atc-header">
+                    <div class="atc-title">
+                        <h1><i class="fa-solid fa-bell" style="color:#6366f1;margin-right:0.4rem;"></i>Notificaciones de Pago</h1>
+                        <p>El sistema asigna automáticamente los clientes que deben ser notificados de su vencimiento próximo</p>
+                    </div>
+                    <div id="badge-nuevas" style="display:none;">
+                        <span style="background:#6366f1;color:white;border-radius:9px;padding:0.4rem 0.9rem;font-size:0.8rem;font-weight:700;">
+                            <i class="fa-solid fa-rotate" style="margin-right:0.3rem;"></i><span id="txt-nuevas">0</span> nuevas asignadas hoy
+                        </span>
+                    </div>
+                </div>
+
+                <!-- KPIs -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon red"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div class="kpi-info">
+                            <h4>Urgentes</h4>
+                            <div class="kpi-val" id="kpi-urgentes">—</div>
+                            <div class="kpi-sub">≤ 3 días</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon yellow"><i class="fa-solid fa-clock"></i></div>
+                        <div class="kpi-info">
+                            <h4>Esta semana</h4>
+                            <div class="kpi-val" id="kpi-semana">—</div>
+                            <div class="kpi-sub">4-7 días</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon blue"><i class="fa-solid fa-calendar"></i></div>
+                        <div class="kpi-info">
+                            <h4>Próximas</h4>
+                            <div class="kpi-val" id="kpi-proximas">—</div>
+                            <div class="kpi-sub">8-15 días</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon green"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="kpi-info">
+                            <h4>Notificadas</h4>
+                            <div class="kpi-val" id="kpi-completadas">—</div>
+                            <div class="kpi-sub">Este ciclo</div>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon orange"><i class="fa-solid fa-phone-slash"></i></div>
+                        <div class="kpi-info">
+                            <h4>Vencidas</h4>
+                            <div class="kpi-val" id="kpi-vencidas">—</div>
+                            <div class="kpi-sub">Sin notificar</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de cumplimiento -->
+                <div class="tasa-bar-wrap">
+                    <span class="tasa-label">
+                        <i class="fa-solid fa-chart-pie" style="color:#6366f1;margin-right:0.4rem;"></i>
+                        Mi cumplimiento del ciclo
+                    </span>
+                    <div class="tasa-bar-outer">
+                        <div class="tasa-bar-inner" id="tasa-bar" style="width:0%;"></div>
+                    </div>
+                    <span class="tasa-pct" id="tasa-pct">0%</span>
+                    <span class="tasa-msg" id="tasa-msg">Cargando...</span>
+                </div>
+
+                <!-- Panel lista de tareas -->
+                <div class="panel-lista">
+                    <div class="panel-lista-header">
+                        <div class="filter-row">
+                            <button class="filter-btn active" data-filtro="TODOS">Todas</button>
+                            <button class="filter-btn" data-filtro="URGENTES">🔴 Urgentes</button>
+                            <button class="filter-btn" data-filtro="PENDIENTE">Por contactar</button>
+                            <button class="filter-btn" data-filtro="NOTIFICADO">Notificados</button>
+                        </div>
+                        {% if es_admin %}
+                        <select class="selector-op" id="selector-operador">
+                            <option value="">Todos los ATC</option>
+                        </select>
+                        {% endif %}
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table-atc">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Teléfonos</th>
+                                    <th>Servicio</th>
+                                    <th>Plan / Ciclo</th>
+                                    <th>Vence en</th>
+                                    <th>Atendido por</th>
+                                    <th>Estado</th>
+                                    <th>Último comentario</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-body">
+                                <tr class="loading-row">
+                                    <td colspan="9">
+                                        <span class="spinner"></span> Calculando notificaciones del ciclo...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Panel rendimiento por ATC (solo admin) -->
+                {% if es_admin %}
+                <div class="panel-rendimiento" id="panel-rendimiento" style="display:none;">
+                    <h3><i class="fa-solid fa-ranking-star" style="color:#6366f1;margin-right:0.5rem;"></i>Rendimiento por Operador ATC</h3>
+                    <div class="atc-cards" id="atc-cards"></div>
+                </div>
+                {% endif %}
+
+            </div>
+
+            <!-- MODAL: Registrar contacto -->
+            <div class="modal-overlay" id="modalContacto">
+                <div class="modal-box">
+                    <div class="modal-header">
+                        <h2 class="modal-title"><i class="fa-solid fa-phone" style="color:#6366f1;margin-right:0.4rem;"></i>Registrar Contacto</h2>
+                        <button class="modal-close-btn" id="btn-cerrar-modal">✕</button>
+                    </div>
+                    <div class="modal-cliente-info" id="modal-cliente-info">
+                        <strong id="modal-cliente-nombre">—</strong>
+                        <span id="modal-cliente-detalle">—</span>
+                    </div>
+                    <form id="formContacto">
+                        <input type="hidden" id="modal-tarea-id" name="tarea_id">
+                        <div class="form-group">
+                            <label class="form-label" for="modal-estado">Resultado del contacto:</label>
+                            <select class="form-select" id="modal-estado" name="estado_contacto" required>
+                                <option value="notificado">✅ Notificado — Cliente contactado exitosamente</option>
+                                <option value="no_contesto">📵 No contestó — Se intentará nuevamente</option>
+                                <option value="sms">💬 Enviado por SMS</option>
+                                <option value="whatsapp">📲 Notificado vía WhatsApp</option>
+                                <option value="rechazado">🚫 Rechazó o no desea ser contactado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="modal-obs">Comentario obligatorio:</label>
+                            <textarea class="form-textarea" id="modal-obs" name="observaciones" rows="4"
+                                      placeholder="Ej: El cliente indicó que pagará el viernes. / No contestó, se llamó a las 3pm. / Número equivocado, actualizar datos..." required></textarea>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="btn-cancel" id="btn-cancelar-modal">Cancelar</button>
+                            <button type="submit" class="btn-guardar">Guardar registro</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script id="ctx-vendedor" type="application/json">{{ ctx_vendedor_json }}</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const ctx = JSON.parse(document.getElementById('ctx-vendedor').textContent || '{}');
+    const esAdmin = ctx.es_admin || false;
+    const personalId = ctx.personal_id;
+
+    let filtroActual = 'TODOS';
+    let operadorActual = '';
+    let tareaActivaId = null;
+
+    // DOM references
+    const tablaBody = document.getElementById('tabla-body');
+    const selectorOp = document.getElementById('selector-operador');
+    const modalContacto = document.getElementById('modalContacto');
+    const formContacto = document.getElementById('formContacto');
+
+    // ── KPIs ──────────────────────────────────────────────────────────────
+    const kpiRefs = {
+        urgentes:    document.getElementById('kpi-urgentes'),
+        semana:      document.getElementById('kpi-semana'),
+        proximas:    document.getElementById('kpi-proximas'),
+        completadas: document.getElementById('kpi-completadas'),
+        vencidas:    document.getElementById('kpi-vencidas'),
+    };
+
+    function actualizarKPIs(kpis, tareas) {
+        const urgentes  = tareas.filter(t => ['CRITICO','URGENTE','VENCIDA'].includes(t.urgencia) && !t.es_contactado).length;
+        const semana    = tareas.filter(t => t.dias_restantes > 3  && t.dias_restantes <= 7  && !t.es_contactado).length;
+        const proximas  = tareas.filter(t => t.dias_restantes > 7  && t.dias_restantes <= 15 && !t.es_contactado).length;
+
+        if (kpiRefs.urgentes)    kpiRefs.urgentes.textContent    = urgentes;
+        if (kpiRefs.semana)      kpiRefs.semana.textContent      = semana;
+        if (kpiRefs.proximas)    kpiRefs.proximas.textContent    = proximas;
+        if (kpiRefs.completadas) kpiRefs.completadas.textContent = kpis.completadas ?? 0;
+        if (kpiRefs.vencidas)    kpiRefs.vencidas.textContent    = kpis.vencidas ?? 0;
+    }
+
+    function actualizarTasa(tasa) {
+        const bar = document.getElementById('tasa-bar');
+        const pct = document.getElementById('tasa-pct');
+        const msg = document.getElementById('tasa-msg');
+        if (bar) bar.style.width = `${tasa}%`;
+        if (pct) pct.textContent = `${tasa}%`;
+        if (msg) {
+            if (tasa >= 100)    msg.textContent = '🎉 ¡Completaste todas tus tareas del ciclo!';
+            else if (tasa >= 80) msg.textContent = '¡Excelente trabajo! Casi al 100%.';
+            else if (tasa >= 50) msg.textContent = 'Buen avance — sigue notificando.';
+            else                 msg.textContent = 'Pendientes por atender.';
+        }
+    }
+
+    // ── Tabla ──────────────────────────────────────────────────────────────
+    function badgeDias(dias, urgencia) {
+        const cls = urgencia.toLowerCase();
+        let icono = '';
+        if (urgencia === 'VENCIDA')  icono = '💀';
+        else if (urgencia === 'CRITICO')  icono = '🔴';
+        else if (urgencia === 'URGENTE')  icono = '🟠';
+        else if (urgencia === 'ALERTA')   icono = '🟡';
+        else                              icono = '🟢';
+        const texto = urgencia === 'VENCIDA' ? 'VENCIDA' : `${dias} día${dias !== 1 ? 's' : ''}`;
+        return `<span class="badge-dias ${cls}">${icono} ${texto}</span>`;
+    }
+
+    function badgeEstado(estado) {
+        const cls = 'badge-' + estado.toLowerCase().replace('_', '');
+        const labels = {
+            pendiente: 'Pendiente', notificado: 'Notificado', no_contesto: 'No contestó',
+            sms: 'SMS', whatsapp: 'WhatsApp', rechazado: 'Rechazó', contactado: 'Contactado'
+        };
+        return `<span class="badge-estado ${cls}">${labels[estado] || estado}</span>`;
+    }
+
+    function badgeCiclo(ciclo) {
+        const cls = ciclo.toLowerCase() === 'fin_mes' ? 'fin_mes' : 'fecha_instalacion';
+        const label = ciclo.toLowerCase() === 'fin_mes' ? 'Fin mes' : 'Aniversario';
+        return `<span class="badge-ciclo ${cls}">${label}</span>`;
+    }
+
+    function renderTabla(tareas) {
+        if (!tablaBody) return;
+        if (!tareas || tareas.length === 0) {
+            tablaBody.innerHTML = `
+                <tr><td colspan="9">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-check-double" style="color:var(--text-muted);"></i>
+                        <h4>Sin tareas pendientes en este filtro</h4>
+                        <p>Todos los clientes de este ciclo han sido atendidos.</p>
+                    </div>
+                </td></tr>`;
+            return;
+        }
+
+        tablaBody.innerHTML = tareas.map(t => {
+            const puedNotificar = !t.es_contactado && (esAdmin || t.empleado_id === personalId);
+            const accion = puedNotificar
+                ? `<button class="btn-notificar" data-id="${t.id}" data-nombre="${esc(t.cliente_nombre)}" data-detalle="${esc(t.cliente_telefono1)} / ${esc(t.cliente_telefono2)} — ${esc(t.cliente_correo)}">Registrar contacto</button>`
+                : `<span class="btn-completado"><i class="fa-solid fa-circle-check" style="color:#10b981;"></i> Atendido</span>`;
+
+            const sinContacto = t.cliente_sin_contacto
+                ? `<i class="fa-solid fa-circle-question ico-sin-contacto" title="Sin número registrado — actualizar datos del cliente"></i>`
+                : '';
+
+            const rowCls = t.urgencia === 'VENCIDA' ? 'row-critico' :
+                           t.urgencia === 'CRITICO' ? 'row-critico' :
+                           t.urgencia === 'URGENTE' ? 'row-urgente' :
+                           t.urgencia === 'ALERTA'  ? 'row-alerta'  : '';
+
+            return `
+            <tr class="${rowCls}" data-id="${t.id}">
+                <td>
+                    <a href="/abonados/${esc(t.cliente_codigo)}/" style="font-weight:700;color:inherit;text-decoration:none;" title="Ver ficha">
+                        ${esc(t.cliente_nombre)}${sinContacto}
+                    </a>
+                    <div style="font-size:0.72rem;color:var(--text-muted);">${esc(t.cliente_codigo)}</div>
+                </td>
+                <td>
+                    <div style="font-weight:600;">${esc(t.cliente_telefono1)}</div>
+                    <div style="font-size:0.78rem;color:var(--text-muted);">${esc(t.cliente_telefono2)}</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);">${esc(t.cliente_correo)}</div>
+                </td>
+                <td><code style="font-size:0.78rem;">${esc(t.servicio_codigo)}</code>
+                    <div style="font-size:0.72rem;color:var(--text-muted);">${esc(t.servicio_estado)}</div>
+                </td>
+                <td>
+                    <div style="font-weight:600;font-size:0.82rem;">${esc(t.plan_nombre)}</div>
+                    ${badgeCiclo(t.tipo_ciclo)}
+                </td>
+                <td>${badgeDias(t.dias_restantes, t.urgencia)}
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem;">${esc(t.fecha_vencimiento)}</div>
+                </td>
+                <td>
+                    <div style="font-size:0.82rem;font-weight:600;">${esc(t.empleado_nombre)}</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);">${t.fecha_ejecucion ? t.fecha_ejecucion : 'Sin registro'}</div>
+                </td>
+                <td>${badgeEstado(t.estado_contacto)}</td>
+                <td style="max-width:180px;font-size:0.78rem;color:var(--text-muted);white-space:normal;">
+                    ${esc(t.observaciones) !== '—' ? esc(t.observaciones) : '<em>Sin comentario</em>'}
+                </td>
+                <td>${accion}</td>
+            </tr>`;
+        }).join('');
+
+        // Eventos botones
+        tablaBody.querySelectorAll('.btn-notificar').forEach(btn => {
+            btn.addEventListener('click', () => {
+                tareaActivaId = btn.dataset.id;
+                document.getElementById('modal-tarea-id').value = tareaActivaId;
+                document.getElementById('modal-cliente-nombre').textContent = btn.dataset.nombre;
+                document.getElementById('modal-cliente-detalle').textContent = btn.dataset.detalle;
+                document.getElementById('modal-estado').value = 'notificado';
+                document.getElementById('modal-obs').value = '';
+                modalContacto.classList.add('active');
+            });
+        });
+    }
+
+    // ── Panel rendimiento ATC ──────────────────────────────────────────────
+    function renderRendimiento(operadores) {
+        const panelRend = document.getElementById('panel-rendimiento');
+        const atcCards = document.getElementById('atc-cards');
+        if (!panelRend || !atcCards || !operadores.length) return;
+
+        panelRend.style.display = '';
+        atcCards.innerHTML = operadores.map(op => `
+            <div class="atc-card">
+                <div class="atc-card-name" title="${esc(op.nombre)}"><i class="fa-solid fa-user-headset" style="color:#6366f1;margin-right:0.3rem;"></i>${esc(op.nombre)}</div>
+                <div class="atc-card-bar-outer">
+                    <div class="atc-card-bar-inner" style="width:${op.tasa}%;"></div>
+                </div>
+                <div class="atc-card-stats">
+                    <span>${op.completadas} de ${op.total} atendidas</span>
+                    <span class="atc-card-tasa">${op.tasa}%</span>
+                </div>
+            </div>`
+        ).join('');
+    }
+
+    // ── Carga principal ────────────────────────────────────────────────────
+    async function cargarTareas() {
+        tablaBody.innerHTML = `<tr class="loading-row"><td colspan="9"><span class="spinner"></span> Cargando...</td></tr>`;
+
+        let url = `/api/tareas/auto-generar/?filtro=${filtroActual}`;
+        if (esAdmin && operadorActual) url += `&operador_id=${operadorActual}`;
+
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.status !== 'success') {
+                SITAlert.show(data.message || 'Error al cargar notificaciones.', 'error');
+                tablaBody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-muted);">Error al cargar datos.</td></tr>`;
+                return;
+            }
+
+            const { tareas, kpis, operadores, tareas_nuevas_creadas } = data.data;
+
+            actualizarKPIs(kpis, tareas);
+            actualizarTasa(kpis.tasa_cumplimiento ?? 0);
+            renderTabla(tareas);
+
+            // Poblado del selector de operadores
+            if (esAdmin && selectorOp && selectorOp.children.length <= 1) {
+                operadores.forEach(op => {
+                    const opt = document.createElement('option');
+                    opt.value = op.id;
+                    opt.textContent = op.nombre;
+                    selectorOp.appendChild(opt);
+                });
+            }
+
+            // Renderizar rendimiento (solo admin)
+            if (esAdmin) renderRendimiento(operadores);
+
+            // Badge de nuevas tareas
+            if (tareas_nuevas_creadas > 0) {
+                const badge = document.getElementById('badge-nuevas');
+                const txt   = document.getElementById('txt-nuevas');
+                if (badge && txt) {
+                    txt.textContent = tareas_nuevas_creadas;
+                    badge.style.display = '';
+                }
+            }
+
+        } catch (err) {
+            console.error(err);
+            SITAlert.show('Error de red al cargar las notificaciones.', 'error');
+        }
+    }
+
+    // ── Filtros ────────────────────────────────────────────────────────────
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            filtroActual = btn.dataset.filtro;
+            cargarTareas();
+        });
+    });
+
+    if (selectorOp) {
+        selectorOp.addEventListener('change', e => {
+            operadorActual = e.target.value;
+            cargarTareas();
+        });
+    }
+
+    // ── Modal ──────────────────────────────────────────────────────────────
+    const cerrarModal = () => modalContacto.classList.remove('active');
+    document.getElementById('btn-cerrar-modal')?.addEventListener('click', cerrarModal);
+    document.getElementById('btn-cancelar-modal')?.addEventListener('click', cerrarModal);
+    modalContacto?.addEventListener('click', e => { if (e.target === modalContacto) cerrarModal(); });
+
+    formContacto?.addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = {
+            tarea_id: document.getElementById('modal-tarea-id').value,
+            estado_contacto: document.getElementById('modal-estado').value,
+            observaciones: document.getElementById('modal-obs').value.trim()
+        };
+        if (!data.observaciones) {
+            SITAlert.show('El comentario es obligatorio.', 'warning');
+            return;
+        }
+        try {
+            const res = await fetch('/api/tareas/registrar-contacto/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const json = await res.json();
+            if (json.status === 'success') {
+                SITAlert.show('Contacto registrado correctamente.', 'success');
+                cerrarModal();
+                cargarTareas();
+            } else {
+                SITAlert.show(json.message || 'Error al guardar.', 'error');
+            }
+        } catch (err) {
+            SITAlert.show('Error de red.', 'error');
+        }
+    });
+
+    // ── Helper ─────────────────────────────────────────────────────────────
+    function esc(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // Carga inicial
+    cargarTareas();
+});
+</script>
+</body>
+</html>

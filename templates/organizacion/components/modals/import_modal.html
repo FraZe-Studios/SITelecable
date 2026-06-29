@@ -1,0 +1,63 @@
+{% load static %}
+<!-- ══ MODAL: IMPORTAR EXCEL ══════════════════════════════════════════════ -->
+<div class="import-modal-overlay" id="importModalOverlay">
+    <div class="import-modal">
+        <div class="import-modal-header">
+            <div class="import-modal-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Importar Red desde Excel
+            </div>
+            <button class="org-modal-close" id="importModalClose" title="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="import-modal-body">
+            <!-- Zona de drop -->
+            <div class="drop-zone" id="dropZone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="12" x2="12" y2="18"></line>
+                    <polyline points="9 15 12 18 15 15"></polyline>
+                </svg>
+                <div class="drop-zone-title">Arrastra tu archivo .xlsx aquí</div>
+                <div class="drop-zone-sub">o haz clic para seleccionar</div>
+                <div class="drop-zone-file-name" id="dropZoneFileName" style="display:none;"></div>
+            </div>
+
+            <!-- Resultado de importación -->
+            <div class="import-result" id="importResult">
+                <div class="import-result-header">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:#059669;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Resultado de importación
+                </div>
+                <div class="result-stats">
+                    <div class="result-stat stat-ok">
+                        <div class="result-stat-num" id="statOk">0</div>
+                        <div class="result-stat-label">Importados</div>
+                    </div>
+                    <div class="result-stat stat-skip">
+                        <div class="result-stat-num" id="statSkip">0</div>
+                        <div class="result-stat-label">Omitidos (duplicado)</div>
+                    </div>
+                    <div class="result-stat stat-err">
+                        <div class="result-stat-num" id="statErr">0</div>
+                        <div class="result-stat-label">Errores</div>
+                    </div>
+                </div>
+                <div class="import-errors-list" id="importErrorsList" style="display:none;"></div>
+            </div>
+
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.85rem;line-height:1.5;">
+                La columna <strong>tipo</strong> acepta variantes: <code>M / Mufa / MuFaS</code> → Mufa, <code>N / Nap / NaP</code> → NAP, <code>H / Hub / HuB</code> → Hub, <code>S / Sede</code> → Sede, <code>SEC / Sector</code> → Sector, <code>F / Fibra</code> → Fibra.<br>
+                Los duplicados (mismo código) se omiten automáticamente.
+            </p>
+        </div>
+        <div class="import-modal-footer">
+            <button class="btn-cancel" id="importModalCancel" title="Cerrar Modal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Cerrar</button>
+            <button class="btn-add" id="btnProcesarImport" disabled title="Procesar Importación">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;margin-right:4px;"><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg> Procesar
+            </button>
+        </div>
+    </div>
+</div>

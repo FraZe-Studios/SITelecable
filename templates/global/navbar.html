@@ -1,0 +1,146 @@
+{% load static %}
+{# Barra de navegación global reusable #}
+<nav class="navbar">
+    <div class="navbar-left">
+        <a href="{% url 'dashboard' %}" class="navbar-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            <span class="brand-text">SIT Telecable</span>
+        </a>
+    </div>
+    
+    <ul class="navbar-nav">
+        <li>
+            <a href="{% url 'dashboard' %}" class="nav-item {% if request.path == '/' or request.path == '/dashboard/' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span class="nav-text">Dashboard</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'organizacion' %}" class="nav-item {% if request.path == '/organizacion/' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+                <span class="nav-text">Organización</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'abonados_list' %}" class="nav-item {% if '/abonados/' in request.path %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="nav-text">Abonados</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'tareas_list' %}" class="nav-item {% if '/tareas/' in request.path %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                </svg>
+                <span class="nav-text">Tareas</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'calendario' %}" class="nav-item {% if '/calendario/' in request.path %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span class="nav-text">Calendario</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'caja' %}" class="nav-item {% if '/caja/' in request.path %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span class="nav-text">Caja</span>
+            </a>
+        </li>
+        <li>
+            <a href="{% url 'sunat_dashboard' %}" class="nav-item {% if '/sunat/' in request.path %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <span class="nav-text">SUNAT</span>
+            </a>
+        </li>
+    </ul>
+    
+    <div class="navbar-actions">
+        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Cambiar tema">
+            <svg class="theme-icon sun-icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg class="theme-icon moon-icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+        <div class="user-profile-badge">
+            <div class="user-avatar">{{ request.session.nombre_cuenta|default:"SIT"|slice:":1"|upper }}</div>
+            <span style="display: flex; flex-direction: column; line-height: 1.2;">
+                <span class="user-name-text" style="font-weight: 600; font-size: 0.9rem;">{{ request.session.nombre_cuenta|default:"SIT Telecable" }}</span>
+                {% if request.session.rol %}
+                <span class="user-role-text" style="font-size: 0.75rem; opacity: 0.7; text-transform: uppercase;">{{ request.session.rol }}</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="caja-selector-container" id="navbar-caja-selector">
+            <select id="navbar-caja-select" class="navbar-caja-select" onchange="seleccionarCajaDesdeNavbar(this.value)">
+                <option value="">Seleccionar Caja</option>
+            </select>
+        </div>
+        <a href="{% url 'logout' %}" class="logout-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Salir
+        </a>
+    </div>
+</nav>
+
+<script src="{% static 'global/js/navbar-caja-selector.js' %}"></script>
+
+<script>
+function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+}
+
+// Cargar tema guardado
+(function() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+})();
+</script>
