@@ -39,7 +39,33 @@ def resumen(request):
         sede = user.sede
 
     if not sede and not is_admin:
-        return senderror('El usuario no tiene una sede asignada.', status=400)
+        return JsonResponse({
+            'status': 'error',
+            'code': 'no_sede_assigned',
+            'message': 'El usuario no tiene una sede asignada. Contacte al administrador.',
+            'is_admin': is_admin,
+            'sede': None,
+            'sede_totales': {
+                'efectivo': 0,
+                'transferencia': 0,
+                'otros': 0,
+                'ingresos': 0,
+                'egresos': 0,
+                'neto': 0
+            },
+            'personal_totales': {
+                'efectivo': 0,
+                'transferencia': 0,
+                'otros': 0,
+                'ingresos': 0,
+                'egresos': 0,
+                'neto': 0
+            },
+            'sedes': [],
+            'cajeros': [],
+            'cajas_sede': [],
+            'cajas_autorizadas': []
+        }, status=200)
 
     # Permitir activar una caja en la sesión
     set_caja = request.GET.get('set_active_caja_id')

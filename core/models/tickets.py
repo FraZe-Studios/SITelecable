@@ -26,6 +26,8 @@ class TicketsOrdenes(models.Model):
     id = models.AutoField(primary_key=True)
     servicio = models.ForeignKey('ServiciosAbonados', models.DO_NOTHING, blank=True, null=True)
     plantilla = models.ForeignKey(TicketsPlantillas, models.DO_NOTHING, db_column='plantilla_id')
+    correlativo_ticket = models.IntegerField(default=0)
+    codigo_ticket = models.CharField(max_length=50, blank=True, null=True)
     
     # Campos alineados estrictamente con tipos ENUM acotados de PostgreSQL
     categoria = models.CharField(max_length=30)  # categoria_ticket (instalacion, incidencia, averia, etc)
@@ -376,6 +378,40 @@ class TicketsOrdenes(models.Model):
         return None
 
     def save(self, *args, **kwargs):
+        if not self.id:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                try:
+                    cursor.execute("SELECT nextval('tickets_ordenes_id_seq');")
+                    self.id = cursor.fetchone()[0]
+                except Exception:
+                    # Fallback for SQLite or systems without sequences
+                    max_id = TicketsOrdenes.objects.all().order_by('-id').values_list('id', flat=True).first() or 0
+                    self.id = max_id + 1
+
+        if not self.correlativo_ticket:
+            self.correlativo_ticket = self.id
+
+        if not self.codigo_ticket:
+            from core.abonados.generador import generar_codigo_ticket
+            self.codigo_ticket = generar_codigo_ticket(self.id, self.categoria)
+
+        if not self.plantilla_id:
+            tpl = TicketsPlantillas.objects.filter(categoria=self.categoria, activo=True).first()
+            if not tpl:
+                tpl = TicketsPlantillas.objects.filter(activo=True).first()
+            if not tpl:
+                tpl = TicketsPlantillas.objects.create(
+                    nombre_ticket=f"Plantilla {self.categoria.title()}",
+                    categoria=self.categoria,
+                    area=self.area or 'planta_externa',
+                    tecnologia=self.tecnologia or 'todos',
+                    modalidad=self.modalidad or 'campo',
+                    precio_base=self.precio_base or Decimal('0.00'),
+                    activo=True
+                )
+            self.plantilla = tpl
+
         cat = str(self.categoria).lower().strip() if self.categoria else ''
         if 'instal' in cat:
             self.categoria = 'instalacion'
@@ -467,43 +503,3 @@ class TicketsOrdenes(models.Model):
         managed = False
         db_table = 'tickets_ordenes'
         db_table_comment = 'Tickets con soporte para solución remota y en campo'
-
-
-class TicketTecnicosAsignados(models.Model):
-    id = models.AutoField(primary_key=True)
-    ticket_orden = models.ForeignKey(TicketsOrdenes, models.DO_NOTHING)
-    tecnico = models.ForeignKey('Usuario', models.DO_NOTHING)
-    fecha_asignacion = models.DateTimeField(auto_now_add=True, blank=True, null=True)
-
-    class Meta:
-        app_label = 'core'
-        managed = False
-        db_table = 'ticket_tecnicos_asignados'
-        unique_together = (('ticket_orden', 'tecnico'),)
-        db_table_comment = 'Técnicos asignados masivamente para trabajo en campo'
-
-
-class TicketConsumoMateriales(models.Model):
-    id = models.AutoField(primary_key=True)
-    ticket_orden = models.ForeignKey(TicketsOrdenes, models.DO_NOTHING)
-    tecnico = models.ForeignKey('Usuario', models.DO_NOTHING)
-    descripcion = models.CharField(max_length=200)
-    unidad_medida = models.CharField(max_length=20)
-    cantidad = models.DecimalField(max_digits=10, decimal_places=2)
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
-    # precio_total es GENERATED ALWAYS en PostgreSQL (= cantidad * precio_unitario)
-    # NO se declara como campo del modelo para que Django no lo incluya en INSERT.
-    # Se puede leer via .values('precio_total') o SQL raw.
-
-
-    # Columnas de identificación física recuperadas del esquema core
-    material_serie = models.CharField(max_length=100, blank=True, null=True)
-    material_mac = models.CharField(max_length=17, blank=True, null=True)
-    
-    fecha_registro = models.DateTimeField(auto_now_add=True, blank=True, null=True)
-
-    class Meta:
-        app_label = 'core'
-        managed = False
-        db_table = 'ticket_consumo_materiales'
-        db_table_comment = 'Materiales y equipos utilizados en campo por técnico'

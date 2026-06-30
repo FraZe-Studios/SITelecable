@@ -41,7 +41,7 @@ CREATE TYPE tipo_cliente_abonado AS ENUM ('natural', 'juridico');
 CREATE TYPE operador_movil AS ENUM ('claro', 'movistar', 'entel', 'bitel', 'otro');
 
 -- Categorias de tickets (ENUM estandarizado en minusculas)
-CREATE TYPE categoria_ticket AS ENUM ('instalacion', 'incidencia', 'requerimiento', 'averia', 'cortes', 'pirateria', 'otros', 'todos');
+CREATE TYPE categoria_ticket AS ENUM ('instalacion', 'incidencia', 'requerimiento', 'averia', 'cortes', 'reconexion', 'pirateria', 'otros', 'todos');
 
 -- Areas operativas de tickets (ENUM estandarizado en minusculas)
 CREATE TYPE area_ticket AS ENUM ('planta_interna', 'planta_externa', 'todos');

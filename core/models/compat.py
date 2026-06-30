@@ -9,7 +9,7 @@ from .infraestructura import Sedes, CajasNap, FibrasOpticas, Sectores
 from .planes import Planes
 from .suscripciones import ServiciosAbonados
 from .facturacion import FacturacionPagos, CajaMovimientos
-from .tickets import TicketsOrdenes, TicketConsumoMateriales
+from .tickets import TicketsOrdenes
 from .ruc import Ruc, RucSedes
 
 # ─── COMPATIBILITY ALIASES FOR OLD MODEL NAMES ──────────────────────────────
@@ -20,7 +20,6 @@ Suscripciones = ServiciosAbonados
 Deudas = FacturacionPagos
 Fibras = FibrasOpticas
 Tickets = TicketsOrdenes
-MaterialesLiquidadosTicket = TicketConsumoMateriales
 RucsGlobales = Ruc
 SedeRuc = RucSedes
 TransaccionesPagos = FacturacionPagos
@@ -410,6 +409,13 @@ class CatalogoTickets(TicketsPlantillas):
                 "anexo_id": None,
                 "motivo": None,
                 "estado": "pendiente"
+            },
+            "reiniciar_servicio": {
+                "activado": False,
+                "fecha_activacion": None,
+                "fecha_liquidacion": None,
+                "nuevo_ciclo_facturacion": None,
+                "estado": "pendiente"
             }
         }
         # Asegurar que todas las claves existan
@@ -421,6 +427,10 @@ class CatalogoTickets(TicketsPlantillas):
                 old_value = self.funciones_especiales[key]
                 self.funciones_especiales[key] = value.copy()
                 self.funciones_especiales[key]['activado'] = old_value
+            # Si ya existe como dict, NO sobrescribir el valor de activado
+            elif isinstance(self.funciones_especiales[key], dict):
+                # Solo asegurar que tenga la estructura completa, pero mantener activado existente
+                pass
         super().save(*args, **kwargs)
 
     @property
@@ -568,6 +578,13 @@ class CatalogoTickets(TicketsPlantillas):
     @corte_anexo.setter
     def corte_anexo(self, value):
         self._set_funcion_activa('corte_anexo', value)
+
+    @property
+    def reiniciar_servicio(self):
+        return self._get_funcion_activa('reiniciar_servicio')
+    @reiniciar_servicio.setter
+    def reiniciar_servicio(self, value):
+        self._set_funcion_activa('reiniciar_servicio', value)
 
 
 class JSONBackedDummyManager(models.Manager):

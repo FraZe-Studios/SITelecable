@@ -385,59 +385,56 @@ def sistema_liquidar_ticket(datos):
         except Exception:
             pass
 
-    # Registrar técnicos asignados en ticket_tecnicos_asignados
+    # Set technician assignment (single technician from tecnico_asignado_id)
     tecnicos_ids = datos.get('tecnicos_asignados') or []
     if tecnicos_ids:
-        from core.models.tickets import TicketTecnicosAsignados
-        for tec_id in tecnicos_ids:
-            TicketTecnicosAsignados.objects.get_or_create(
-                ticket_orden=ticket,
-                tecnico_id=int(tec_id)
-            )
+        # Use the first technician ID for single assignment
+        ticket.tecnico_asignado_id = int(tecnicos_ids[0])
+        ticket.save(update_fields=['tecnico_asignado_id'])
 
-    # Registrar materiales utilizados en ticket_consumo_materiales
+    # Store materials in materiales_consumidos_json field
     if tipo == 'MATERIALES':
-        from core.models.tickets import TicketConsumoMateriales
-        TicketConsumoMateriales.objects.filter(ticket_orden=ticket).delete()
+        materiales_data = []
         for item in datos.get('materiales') or []:
             cant = Decimal(str(item.get('cantidad') or 1))
             precio = Decimal(str(item.get('precio_unitario') or 0))
-            TicketConsumoMateriales.objects.create(
-                ticket_orden=ticket,
-                tecnico_id=int(datos.get('personal_id') or 1),
-                descripcion=(item.get('descripcion') or 'Material')[:200],
-                unidad_medida=(item.get('unidad_medida') or 'Unidad')[:20],
-                cantidad=cant,
-                precio_unitario=precio
-            )
+            materiales_data.append({
+                'descripcion': (item.get('descripcion') or 'Material')[:200],
+                'unidad_medida': (item.get('unidad_medida') or 'Unidad')[:20],
+                'cantidad': float(cant),
+                'precio_unitario': float(precio),
+                'tecnico_id': int(datos.get('personal_id') or 1),
+            })
+        ticket.materiales_consumidos_json = materiales_data
+        ticket.save(update_fields=['materiales_consumidos_json'])
 
     # Registrar historial de cambio de router principal si hubo cambios
     if sub and router_changed:
-        from core.models.tickets import TicketConsumoMateriales
+        materiales_actuales = ticket.materiales_consumidos_json or []
         # Si había un router anterior, registrar su retiro
         if old_router_serie or old_router_mac:
-            TicketConsumoMateriales.objects.create(
-                ticket_orden=ticket,
-                tecnico_id=int(datos.get('personal_id') or 1),
-                descripcion=f"[RETIRO] {old_router_modelo} (Serie: {old_router_serie}, MAC: {old_router_mac})",
-                unidad_medida="Unidad",
-                cantidad=Decimal('1.00'),
-                precio_unitario=Decimal('0.00'),
-                material_serie=old_router_serie.strip()[:100] if old_router_serie else None,
-                material_mac=_sanear_material_mac(old_router_mac)
-            )
+            materiales_actuales.append({
+                'descripcion': f"[RETIRO] {old_router_modelo} (Serie: {old_router_serie}, MAC: {old_router_mac})",
+                'unidad_medida': "Unidad",
+                'cantidad': 1.0,
+                'precio_unitario': 0.0,
+                'tecnico_id': int(datos.get('personal_id') or 1),
+                'material_serie': old_router_serie.strip()[:100] if old_router_serie else None,
+                'material_mac': _sanear_material_mac(old_router_mac),
+            })
         # Si se instaló un nuevo router, registrar su instalación
         if new_router_serie or new_router_mac:
-            TicketConsumoMateriales.objects.create(
-                ticket_orden=ticket,
-                tecnico_id=int(datos.get('personal_id') or 1),
-                descripcion=f"{new_router_modelo} (Serie: {new_router_serie}, MAC: {new_router_mac})",
-                unidad_medida="Unidad",
-                cantidad=Decimal('1.00'),
-                precio_unitario=Decimal('0.00'),
-                material_serie=new_router_serie.strip()[:100] if new_router_serie else None,
-                material_mac=_sanear_material_mac(new_router_mac)
-            )
+            materiales_actuales.append({
+                'descripcion': f"{new_router_modelo} (Serie: {new_router_serie}, MAC: {new_router_mac})",
+                'unidad_medida': "Unidad",
+                'cantidad': 1.0,
+                'precio_unitario': 0.0,
+                'tecnico_id': int(datos.get('personal_id') or 1),
+                'material_serie': new_router_serie.strip()[:100] if new_router_serie else None,
+                'material_mac': _sanear_material_mac(new_router_mac),
+            })
+        ticket.materiales_consumidos_json = materiales_actuales
+        ticket.save(update_fields=['materiales_consumidos_json'])
 
     # Buscar RUC emisor de la sede
     ruc_emisor = None

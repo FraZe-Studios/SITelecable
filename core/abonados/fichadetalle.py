@@ -24,12 +24,15 @@ def _tickets_suscripcion(suscripcion_id):
     qs = Tickets.objects.filter(servicio_id=suscripcion_id).order_by('-fecha_creacion')[:50]
     items = []
     for t in qs:
-        # Fetching assignees names
-        from core.models.models_generados import TicketTecnicosAsignados
-        tecnicos = list(
-            TicketTecnicosAsignados.objects.filter(ticket_orden=t)
-            .values_list('tecnico__nombre_completo', flat=True)
-        )
+        # Fetching assignee name (single technician from tecnico_asignado_id)
+        tecnicos = []
+        if t.tecnico_asignado_id:
+            from core.models.usuarios import Usuario
+            try:
+                tecnico = Usuario.objects.get(pk=t.tecnico_asignado_id)
+                tecnicos = [tecnico.nombre_completo]
+            except Usuario.DoesNotExist:
+                pass
         
         liq = sistema_leer_liquidacion(t.id)
         if liq:
@@ -422,10 +425,7 @@ def sistema_detalle_ficha_cliente(cliente, suscripciones, cargo_usuario=''):
                 CatalogoTickets.objects.filter(activo=True)
                 .values(
                     'id', 'nombre_ticket', 'area', 'categoria', 'tecnologia', 'modalidad', 
-                    'precio_base',
-                    'editar_mapa', 'mantiene_equipo_anterior', 
-                    'requiere_nuevo_suministro', 'migracion_plan',
-                    'cambio_equipo', 'es_instalacion', 'genera_merma', 'migracion_genera_cambio_equipo'
+                    'precio_base', 'configuracion_reglas', 'funciones_especiales'
                 )[:100]
             )
             # Convert Decimal fields to float for JSON serialization
@@ -436,26 +436,24 @@ def sistema_detalle_ficha_cliente(cliente, suscripciones, cargo_usuario=''):
         tickets = _tickets_suscripcion(sub.id_suscripcion)
         
         # Obtener materiales consumidos/liquidados de los tickets de la suscripcion
-        from core.models.tickets import TicketConsumoMateriales
-        consumos = TicketConsumoMateriales.objects.filter(
-            ticket_orden__servicio_id=sub.id
-        ).select_related('ticket_orden').order_by('-fecha_registro')
-        
         materiales_list = []
-        for c in consumos:
-            tipo_accion = "Retiro" if "[RETIRO]" in c.descripcion.upper() or "RETIRO" in c.descripcion.upper() else "Instalado/Usado"
-            nombre_limpio = c.descripcion.replace("[RETIRO]", "").replace("[retiro]", "").strip()
-            materiales_list.append({
-                'id': c.id,
-                'nombre_material': nombre_limpio,
-                'cantidad': float(c.cantidad),
-                'fecha_asignacion': c.fecha_registro,
-                'estado': 'LIQUIDADO',
-                'tipo_accion': tipo_accion,
-                'se_cobra': "SÍ" if c.precio_unitario > 0 else "NO",
-                'precio_total': float(c.cantidad * c.precio_unitario) if c.precio_unitario else 0.0,
-                'ticket_id': c.ticket_orden_id,
-            })
+        for ticket in tickets:
+            if ticket.get('liquidacion') and isinstance(ticket['liquidacion'], dict):
+                materiales = ticket['liquidacion'].get('materiales', [])
+                for mat in materiales:
+                    tipo_accion = "Retiro" if "[RETIRO]" in mat.get('descripcion', '').upper() else "Instalado/Usado"
+                    nombre_limpio = mat.get('descripcion', '').replace("[RETIRO]", "").replace("[retiro]", "").strip()
+                    materiales_list.append({
+                        'id': mat.get('id'),
+                        'nombre_material': nombre_limpio,
+                        'cantidad': float(mat.get('cantidad', 0)),
+                        'fecha_asignacion': ticket.get('fecha_creacion'),
+                        'estado': 'LIQUIDADO',
+                        'tipo_accion': tipo_accion,
+                        'se_cobra': "SÍ" if mat.get('precio_unitario', 0) > 0 else "NO",
+                        'precio_total': float(mat.get('cantidad', 0) * mat.get('precio_unitario', 0)),
+                        'ticket_id': ticket.get('id'),
+                    })
 
         # Calculate net materials the client currently has installed
         net_materiales = {}
@@ -581,6 +579,10 @@ def sistema_detalle_ficha_cliente(cliente, suscripciones, cargo_usuario=''):
         planes_sede = sistema_planes_por_sede(sede_id) if sede_id else []
         planes_sede_json = json.dumps(planes_sede)
 
+        # Obtener beneficios activos del servicio
+        from core.abonados.pagos import sistema_obtener_beneficios_activos
+        beneficios_activos = sistema_obtener_beneficios_activos(sub.id)
+
         detalles.append({
             'obj': sub,
             'codigo_servicio': sub.id_suscripcion,
@@ -605,6 +607,7 @@ def sistema_detalle_ficha_cliente(cliente, suscripciones, cargo_usuario=''):
             'total_mensual': 0.0 if (tiene_servicio_activo and sub.plan_id and sub.plan.tipo_servicio.lower() == 'app' and sub.estado_servicio.lower() == 'activo' and not app_bonificada_encontrada) else (float(sub.plan.costo_plan) if sub.plan_id else 0),
             'admite_compromiso': bool(getattr(sub.plan, 'admite_compromiso_pago', True)) if sub.plan_id else False,
             'oferta_pendiente': oferta_pendiente,
+            'beneficios_activos': beneficios_activos,
             'rucs_emision': sistema_rucs_emision_sede(sede_id),
             'contrato_plantilla': _contrato_plantilla_sede(sede_id),
             'catalogo_tickets': catalogo,

@@ -6,5 +6,9 @@
     "1": {
         "efectivo": true,
         "transferencia": false
+    },
+    "3": {
+        "efectivo": true,
+        "transferencia": false
     }
 }

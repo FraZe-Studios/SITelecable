@@ -1,9 +1,10 @@
 /**
  * Wizard de registro de abonado:
- * Documento → Cliente → Suministro → Evaluación y Plan → Pagos → Confirmar
+ * Documento → Cliente → Suministro → Evaluación y Plan (con Pagos en tiempo real) → Confirmar
  */
 (function () {
-    const STEPS = ['Documento', 'Cliente', 'Suministro', 'Evaluación y Plan', 'Pagos', 'Confirmar'];
+    console.log('AbonadosRegistro: Inicializando...');
+    const STEPS = ['Documento', 'Cliente', 'Suministro', 'Evaluación y Plan', 'Confirmar'];
     let step = 0;
     let ctx = { vendedor: {}, sedes: [], planes: [], rucs_emision: [], estados_civiles: [], operadores: [] };
     let state = {};
@@ -236,9 +237,12 @@
             const mainPlanes = filteredPlanes.filter(p => p.tipo_servicio !== 'APP');
             const appPlanes = filteredPlanes.filter(p => p.tipo_servicio === 'APP');
             
-            const planOpts = mainPlanes.map(p =>
-                `<option value="${p.id}" data-costo="${p.costo_plan}" data-tipo="${p.tipo_servicio}" ${String(state.plan_id) === String(p.id) ? 'selected' : ''}>${p.nombre_plan} — S/ ${p.costo_plan}</option>`
-            ).join('');
+            const planOpts = mainPlanes.map(p => {
+                const tipoIcon = p.tipo_servicio === 'INTERNET' ? '🌐' : p.tipo_servicio === 'TV' ? '📺' : p.tipo_servicio === 'DUO' ? '📡' : p.tipo_servicio === 'APP' ? '📱' : '📦';
+                const beneficios = p.caracteristicas_tecnicas_json?.beneficios || [];
+                const beneficiosText = beneficios.length > 0 ? ` (${beneficios.slice(0, 2).join(', ')})` : '';
+                return `<option value="${p.id}" data-costo="${p.costo_plan}" data-tipo="${p.tipo_servicio}" ${String(state.plan_id) === String(p.id) ? 'selected' : ''}>${tipoIcon} ${p.nombre_plan} [${p.tipo_servicio}] — S/ ${p.costo_plan}${beneficiosText}</option>`;
+            }).join('');
             
             const appOpts = appPlanes.map(p =>
                 `<option value="${p.id}" data-costo="${p.costo_plan}" ${(state.app_ids || []).includes(p.id) ? 'selected' : ''}>${p.nombre_plan} — S/ ${p.costo_plan}</option>`
@@ -246,13 +250,25 @@
 
             const selectedPlan = mainPlanes.find(p => String(p.id) === String(state.plan_id));
             const isDuoOrTv = selectedPlan && (selectedPlan.tipo_servicio === 'DUO' || selectedPlan.tipo_servicio === 'TV');
-            const numAnexos = state.num_anexos || 0;
+            if (isDuoOrTv) {
+                state.tiene_anexos = true;
+            }
+            const numAnexos = state.num_anexos || (state.tiene_anexos ? 1 : 0);
             const hab = ctx.vendedor?.habilidades || {};
-            const hg = hab.habilidades_globales || {};
+            const hg = hab; // Correct flat capabilities bug
             const maxDescuentoPlan = hg.planes_mensuales?.descuento_maximo_porcentaje || 0;
             const maxMesesGratis = hg.planes_mensuales?.meses_maximos || 0;
             const requiereAutorizacion = hg.planes_mensuales?.requiere_autorizacion_supervisor || false;
             
+            const maxDescuentoDeuda = hg.deudas_antiguas?.descuento_maximo_porcentaje || 0;
+            const maxCuotasDeuda = hg.deudas_antiguas?.cuotas_maximas || 0;
+            const pctDescuentoDeuda = state.pct_descuento || 0;
+
+            const maxDescuentoInstalacion = hg.tickets_cobro?.descuento_maximo_porcentaje || 0;
+            const maxCuotasInstalacion = hg.tickets_cobro?.cuotas_maximas || 0;
+            const pctDescuentoInstalacion = state.pct_descuento_instalacion || 0;
+            const cuotasInstalacion = state.cuotas_instalacion || 1;
+
             // Calculate debt proration if debt exists
             const deudasCobrar = [
                 ...(state.deudas_cliente || []),
@@ -263,70 +279,247 @@
             const cuotasDeuda = state.cuotas_deuda || 1;
             const montoCuotaDeuda = cuotasDeuda > 1 ? (totalDeuda / cuotasDeuda).toFixed(2) : totalDeuda.toFixed(2);
             
+            // Build options for wCuotasDeuda
+            let cuotasDeudaOpts = `<option value="1" ${cuotasDeuda === 1 ? 'selected' : ''}>Pago único (S/ ${montoCuotaDeuda})</option>`;
+            if (maxCuotasDeuda >= 3) {
+                cuotasDeudaOpts += `<option value="3" ${cuotasDeuda === 3 ? 'selected' : ''}>3 cuotas de S/ ${(totalDeuda/3).toFixed(2)}</option>`;
+            }
+            if (maxCuotasDeuda >= 6) {
+                cuotasDeudaOpts += `<option value="6" ${cuotasDeuda === 6 ? 'selected' : ''}>6 cuotas de S/ ${(totalDeuda/6).toFixed(2)}</option>`;
+            }
+            if (maxCuotasDeuda >= 12) {
+                cuotasDeudaOpts += `<option value="12" ${cuotasDeuda === 12 ? 'selected' : ''}>12 cuotas de S/ ${(totalDeuda/12).toFixed(2)}</option>`;
+            }
+
+            // Build options for wCuotasInstalacion
+            let cuotasInstalacionOpts = `<option value="1" ${cuotasInstalacion === 1 ? 'selected' : ''}>Pago único</option>`;
+            if (maxCuotasInstalacion >= 3) {
+                cuotasInstalacionOpts += `<option value="3" ${cuotasInstalacion === 3 ? 'selected' : ''}>3 cuotas</option>`;
+            }
+            if (maxCuotasInstalacion >= 6) {
+                cuotasInstalacionOpts += `<option value="6" ${cuotasInstalacion === 6 ? 'selected' : ''}>6 cuotas</option>`;
+            }
+            if (maxCuotasInstalacion >= 12) {
+                cuotasInstalacionOpts += `<option value="12" ${cuotasInstalacion === 12 ? 'selected' : ''}>12 cuotas</option>`;
+            }
+
+            // Costo de instalación guardado del ticket del catálogo (viene del último eval)
+            const costoInstalacionCatalogo = state._costo_instalacion_base || null;
+
+            // Build plan details card (cuadradito completo)
+            let planDetailsHtml = '';
+            if (selectedPlan) {
+                const cb = selectedPlan.caracteristicas_tecnicas_json?.caracteristicas_base || {};
+                const af = selectedPlan.caracteristicas_tecnicas_json?.activacion_funciones || {};
+                const normalPrice = selectedPlan.costo_plan || 0;
+                const earlyPaymentDiscount = selectedPlan.monto_descuento_pago_anticipado || 0;
+                const earlyPaymentPrice = normalPrice - earlyPaymentDiscount;
+                const earlyPaymentDays = selectedPlan.dias_anticipacion_descuento || 0;
+                
+                planDetailsHtml = `
+                    <div class="ab-plan-card" style="grid-column: 1 / -1; background: var(--bg-surface-hover); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.75rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                            <strong style="color:var(--text-primary); font-size: 0.9rem;">📦 Detalle del Plan: ${selectedPlan.nombre_plan}</strong>
+                            <span style="font-size:0.75rem; font-weight:bold; padding:0.2rem 0.5rem; background:var(--primary-color); color:white; border-radius:12px;">${selectedPlan.tipo_servicio}</span>
+                        </div>
+                        
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem; font-size:0.8rem;">
+                            <!-- Precios -->
+                            <div style="background:var(--bg-surface); padding:0.5rem; border-radius:var(--radius-sm); border-left:3px solid var(--accent-color);">
+                                <div style="font-size:0.7rem; color:var(--text-muted);">Precio Normal</div>
+                                <div style="font-weight:bold; font-size: 1rem; color:var(--text-primary);">S/ ${Number(normalPrice).toFixed(2)}</div>
+                            </div>
+                            
+                            ${earlyPaymentDiscount > 0 ? `
+                            <div style="background:rgba(34,197,94,0.1); padding:0.5rem; border-radius:var(--radius-sm); border-left:3px solid #22c55e;">
+                                <div style="font-size:0.7rem; color:#15803d; font-weight:bold;">Precio Pago Anticipado</div>
+                                <div style="font-weight:bold; font-size: 1rem; color:#15803d;">S/ ${Number(earlyPaymentPrice).toFixed(2)}</div>
+                                <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.25rem;">(Si paga con ${earlyPaymentDays} días de anticipación)</div>
+                            </div>` : ''}
+
+                            <!-- Costo de Instalación del catálogo -->
+                            <div style="background:rgba(234,179,8,0.08); padding:0.5rem; border-radius:var(--radius-sm); border-left:3px solid #eab308;">
+                                <div style="font-size:0.7rem; color:#92400e; font-weight:bold;">🔧 Costo de Instalación</div>
+                                ${costoInstalacionCatalogo !== null ? `
+                                <div style="font-weight:bold; font-size: 1rem; color:#92400e;">S/ ${Number(costoInstalacionCatalogo).toFixed(2)}</div>
+                                <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.15rem;">Precio del ticket de campo</div>
+                                ` : `
+                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem; font-style:italic;">Consultando catálogo...</div>
+                                `}
+                            </div>
+                            
+                            <!-- Características Base -->
+                            <div style="background:var(--bg-surface); padding:0.5rem; border-radius:var(--radius-sm);">
+                                <div style="font-size:0.7rem; color:var(--text-muted);">Características Técnicas</div>
+                                <div style="color:var(--text-primary); font-weight: 500; margin-top: 0.25rem;">
+                                    ${cb.velocidad_mbps ? `<div>⚡ Velocidad: ${cb.velocidad_mbps} Mbps</div>` : ''}
+                                    ${cb.cantidad_canales ? `<div>📺 Canales: ${cb.cantidad_canales}</div>` : ''}
+                                    ${selectedPlan.dias_gracia ? `<div>📅 Días gracia: ${selectedPlan.dias_gracia}</div>` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Configuración -->
+                            <div style="background:var(--bg-surface); padding:0.5rem; border-radius:var(--radius-sm);">
+                                <div style="font-size:0.7rem; color:var(--text-muted);">Configuración y Reglas</div>
+                                <div style="color:var(--text-primary); font-size: 0.72rem; margin-top: 0.25rem; line-height: 1.3;">
+                                    <div>📆 Vencimiento: ${selectedPlan.configuracion_fecha_pago === 'FECHA_INSTALACION' ? 'Instalación' : 'Fin de mes'}</div>
+                                    <div>🔄 Prórrogas: ${af.admite_prorrogas ? '✅ Sí' : '❌ No'}</div>
+                                    <div>🧩 Prorrateo: ${af.admite_prorrateo_parcial ? '✅ Sí' : '❌ No'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
 
             b.innerHTML = `
-                ${tieneDeuda
-                    ? showAlert(`Deuda total: ${money(totalDeuda)}. Prorrateo: ${cuotasDeuda} cuotas de S/ ${montoCuotaDeuda}. Aplique descuento en pagos.`, 'warn')
-                    : showAlert('Sin deudas cobrables. Seleccione su plan.', 'info')}
-                <h4 style="margin:0.5rem 0 0.25rem;font-size:0.75rem;">Deudas detectadas</h4>
-                ${renderDeudaPanel()}
-                ${tieneDeuda ? `
-                <div class="ab-field full" style="margin-top:0.5rem;">
-                    <label>Cuotas de Deuda</label>
-                    <select id="wCuotasDeuda">
-                        <option value="1" ${cuotasDeuda === 1 ? 'selected' : ''}>Pago único (S/ ${montoCuotaDeuda})</option>
-                        <option value="3" ${cuotasDeuda === 3 ? 'selected' : ''}>3 cuotas de S/ ${(totalDeuda/3).toFixed(2)}</option>
-                        <option value="6" ${cuotasDeuda === 6 ? 'selected' : ''}>6 cuotas de S/ ${(totalDeuda/6).toFixed(2)}</option>
-                        <option value="12" ${cuotasDeuda === 12 ? 'selected' : ''}>12 cuotas de S/ ${(totalDeuda/12).toFixed(2)}</option>
-                    </select>
-                </div>
-                <div class="ab-deuda-prorrateo" style="margin-top:0.25rem; padding:0.5rem; background:var(--bg-tertiary); border-radius:var(--radius-sm); font-size:0.75rem;">
-                    <strong>Prorrateo actual:</strong> ${cuotasDeuda} cuotas de S/ ${montoCuotaDeuda} cada una
-                </div>` : ''}
-                <div class="ab-form-grid" style="margin-top:1rem;">
-                    ${ctx.vendedor?.es_admin ? `
-                    <div class="ab-field full"><label>Sede registro</label>
-                        <select id="wSede">${sedeOpts}</select></div>` : ''}
-                    <div class="ab-field full"><label>Plan *</label>
-                        <select id="wPlan"><option value="">Seleccione...</option>${planOpts}</select></div>
-                    <div class="ab-field"><label>Descuento Plan (%)</label>
-                        <input type="number" id="wDescuentoPlan" min="0" max="${maxDescuentoPlan}" value="${state.descuento_plan || 0}" placeholder="0-${maxDescuentoPlan}">
+                <div style="display:flex; gap:1.25rem; align-items:flex-start;">
+
+                  <!-- COLUMNA IZQUIERDA: Formulario -->
+                  <div style="flex:1; min-width:0;">
+                    ${tieneDeuda
+                        ? showAlert(`Deuda total: ${money(totalDeuda)}. Prorrateo: ${cuotasDeuda} cuotas de S/ ${montoCuotaDeuda}. Aplique descuento en pagos.`, 'warn')
+                        : showAlert('Sin deudas cobrables. Seleccione su plan.', 'info')}
+                    <h4 style="margin:0.5rem 0 0.25rem;font-size:0.75rem;">Deudas detectadas</h4>
+                    ${renderDeudaPanel()}
+                    ${tieneDeuda ? `
+                    <div class="ab-form-grid" style="margin-top:0.5rem;">
+                        <div class="ab-field">
+                            <label>Descuento Deuda (%)</label>
+                            <input type="number" id="wDescuentoDeuda" min="0" max="${maxDescuentoDeuda}" value="${pctDescuentoDeuda}" placeholder="0-${maxDescuentoDeuda}" ${maxDescuentoDeuda === 0 ? 'disabled' : ''}>
+                        </div>
+                        <div class="ab-field">
+                            <label>Cuotas de Deuda</label>
+                            <select id="wCuotasDeuda" ${maxCuotasDeuda <= 1 ? 'disabled' : ''}>
+                                ${cuotasDeudaOpts}
+                            </select>
+                        </div>
                     </div>
-                    <div class="ab-field"><label>Meses Gratis</label>
-                        <input type="number" id="wMesesGratis" min="0" max="${maxMesesGratis}" value="${state.meses_gratis || 0}" placeholder="0-${maxMesesGratis}">
-                    </div>
-                    ${requiereAutorizacion && state.descuento_plan > 50 ? `
-                    <div class="ab-field full" style="background:var(--bg-warning); padding:0.5rem; border-radius:var(--radius-sm); border-left:3px solid var(--warning-color);">
-                        <label style="color:var(--warning-color); font-weight:bold;">⚠ Requiere Autorización Supervisor</label>
-                        <input type="text" id="wAutorizacionSup" placeholder="Ingrese código de autorización" style="margin-top:0.25rem;">
+                    <div class="ab-deuda-prorrateo" style="margin-top:0.25rem; padding:0.5rem; background:var(--bg-tertiary); border-radius:var(--radius-sm); font-size:0.75rem;">
+                        <strong>Prorrateo actual:</strong> ${cuotasDeuda} cuotas de S/ ${montoCuotaDeuda} cada una
                     </div>` : ''}
-                    ${appPlanes.length > 0 ? `
-                    <div class="ab-field full">
-                        <label>Aplicaciones</label>
-                        <select id="wApps"><option value="">Seleccione...</option>${appOpts}</select>
-                        <label style="display:flex; align-items:center; gap:0.35rem; margin-top:0.5rem; cursor:pointer; font-size:0.85rem;"><input type="checkbox" id="wOmitirPagoApps" ${state.omitir_pago_apps ? 'checked' : ''}> Omitir pago inicial de aplicativos (Gratis por 1 año)</label>
-                    </div>` : ''}
-                    <div class="ab-field full" id="anexoContainer" style="display: ${isDuoOrTv ? 'block' : 'none'};">
-                        <label>Número de Anexos (TV/Duo)</label>
-                        <input type="number" id="wNumAnexos" min="0" max="10" value="${numAnexos}" placeholder="0">
-                        <p class="ab-address" style="margin-top:0.25rem; font-size:0.75rem;">
-                            <i class="fa-solid fa-info-circle"></i> El primer anexo es GRATIS al registro. Los adicionales se cobran mensualmente según el ticket de instalación.
-                        </p>
+
+                    <div class="ab-form-grid" style="margin-top:1rem;">
+                        ${ctx.vendedor?.es_admin ? `
+                        <div class="ab-field full"><label>Sede registro</label>
+                            <select id="wSede">${sedeOpts}</select></div>` : ''}
+                        <div class="ab-field full" style="display:flex; gap:0.5rem; align-items:flex-end;">
+                            <div style="flex:1;">
+                                <label>Plan *</label>
+                                <select id="wPlan"><option value="">Seleccione...</option>${planOpts}</select>
+                            </div>
+                            <button type="button" id="btnAddPlan" style="padding:0.5rem 1rem; background:var(--primary-color); color:white; border:none; border-radius:var(--radius-sm); cursor:pointer; margin-bottom:0.25rem;">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+
+                        ${planDetailsHtml}
+
+                        ${state.planes_adicionales && state.planes_adicionales.length > 0 ? `
+                        <div class="ab-field full" style="background:var(--bg-surface-active); padding:0.75rem; border-radius:var(--radius-sm); margin-top:0.5rem;">
+                            <label style="font-size:0.7rem; font-weight:bold; margin-bottom:0.5rem;">Planes Adicionales:</label>
+                            ${state.planes_adicionales.map((p, idx) => `
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:0.35rem; background:var(--bg-surface); border-radius:var(--radius-sm); margin-bottom:0.25rem;">
+                                    <span style="font-size:0.75rem;">${p.nombre} — S/ ${p.costo}</span>
+                                    <button type="button" class="btn-remove-plan" data-idx="${idx}" style="background:none; border:none; color:var(--error-color); cursor:pointer; font-size:0.9rem;">
+                                        <i class="fa-solid fa-times"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>` : ''}
+
+                        <div class="ab-field"><label>Descuento Plan (%)</label>
+                            <input type="number" id="wDescuentoPlan" min="0" max="${maxDescuentoPlan}" value="${state.descuento_plan || 0}" placeholder="0-${maxDescuentoPlan}">
+                        </div>
+                        <div class="ab-field"><label>Meses de Descuento</label>
+                            <input type="number" id="wMesesDescuento" min="0" max="${maxMesesGratis}" value="${state.meses_descuento || 0}" placeholder="0-${maxMesesGratis}">
+                        </div>
+                        ${requiereAutorizacion && state.descuento_plan > 50 ? `
+                        <div class="ab-field full" style="background:var(--bg-warning); padding:0.5rem; border-radius:var(--radius-sm); border-left:3px solid var(--warning-color);">
+                            <label style="color:var(--warning-color); font-weight:bold;">⚠ Requiere Autorización Supervisor</label>
+                            <input type="text" id="wAutorizacionSup" placeholder="Ingrese código de autorización" style="margin-top:0.25rem;">
+                        </div>` : ''}
+
+                        <div class="ab-field"><label>Descuento Instalación (%)</label>
+                            <input type="number" id="wDescuentoInstalacion" min="0" max="${maxDescuentoInstalacion}" value="${pctDescuentoInstalacion}" placeholder="0-${maxDescuentoInstalacion}" ${maxDescuentoInstalacion === 0 ? 'disabled' : ''}>
+                        </div>
+                        <div class="ab-field"><label>Cuotas Instalación</label>
+                            <select id="wCuotasInstalacion" ${maxCuotasInstalacion <= 1 ? 'disabled' : ''}>
+                                ${cuotasInstalacionOpts}
+                            </select>
+                        </div>
+
+                        ${appPlanes.length > 0 ? `
+                        <div class="ab-field full">
+                            <label>Aplicaciones</label>
+                            <select id="wApps"><option value="">Seleccione...</option>${appOpts}</select>
+                        </div>
+                        <div class="ab-field"><label>Descuento Apps (%)</label>
+                            <input type="number" id="wDescuentoApps" min="0" max="${maxDescuentoPlan}" value="${state.pct_descuento_apps || 0}" placeholder="0-${maxDescuentoPlan}">
+                        </div>
+                        <div class="ab-field"><label>Meses de Descuento Apps</label>
+                            <input type="number" id="wMesesDescuentoApps" min="0" max="${maxMesesGratis}" value="${state.meses_descuento_apps || 0}" placeholder="0-${maxMesesGratis}">
+                        </div>` : ''}
+
+                        <div class="ab-field">
+                            <label>¿Tendrá anexos de TV?</label>
+                            <select id="wTieneAnexos" ${isDuoOrTv ? 'disabled' : ''}>
+                                <option value="no" ${!state.tiene_anexos ? 'selected' : ''}>No</option>
+                                <option value="si" ${state.tiene_anexos ? 'selected' : ''}>Sí</option>
+                            </select>
+                        </div>
+
+                        <div class="ab-field full" id="anexoContainer" style="display: ${state.tiene_anexos ? 'block' : 'none'};">
+                            <label>Número de Anexos (TV/Duo)</label>
+                            <input type="number" id="wNumAnexos" min="1" max="10" value="${numAnexos || 1}" placeholder="1">
+                            <p class="ab-address" style="margin-top:0.25rem; font-size:0.75rem;">
+                                <i class="fa-solid fa-info-circle"></i> El primer anexo es GRATIS al registro. Los adicionales se cobran mensualmente.
+                            </p>
+                        </div>
+
+                        <div class="ab-field full" style="margin-top:0.25rem;">
+                            <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.3rem;">
+                                <i class="fa-solid fa-gift" style="color:var(--accent-color);"></i>
+                                <label style="margin:0; font-weight:bold; font-size:0.8rem;">Beneficios y Notas</label>
+                            </div>
+                            <textarea id="wNotasBeneficios" rows="2"
+                                style="width:100%; resize:vertical; font-size:0.8rem; box-sizing:border-box; padding:0.4rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); background:var(--bg-surface); color:var(--text-primary);"
+                                placeholder="Ej: Descuento por llamada de retención, cliente especial, acuerdo verbal...">${esc(state.notas_beneficios || '')}</textarea>
+                            <p class="ab-address" style="margin-top:0.15rem; font-size:0.7rem;">
+                                <i class="fa-solid fa-info-circle"></i> Esta nota queda registrada en la ficha del cliente. El descuento se aplica según el porcentaje configurado.
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <div class="ab-advisories" style="margin-top:1rem; padding:0.75rem; background:var(--bg-tertiary); border-radius:var(--radius-sm); border-left:3px solid var(--accent-color);">
-                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
-                        <i class="fa-solid fa-circle-question" style="color:var(--accent-color); font-size:1rem;"></i>
-                        <strong style="font-size:0.8rem; color:var(--text-primary);">Advertencias y Consejos</strong>
+
+                    <div class="ab-advisories" style="margin-top:1rem; padding:0.75rem; background:var(--bg-tertiary); border-radius:var(--radius-sm); border-left:3px solid var(--accent-color);">
+                        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+                            <i class="fa-solid fa-circle-question" style="color:var(--accent-color); font-size:1rem;"></i>
+                            <strong style="font-size:0.8rem; color:var(--text-primary);">Advertencias y Consejos</strong>
+                        </div>
+                        <ul style="margin:0; padding-left:1.25rem; font-size:0.75rem; color:var(--text-secondary); line-height:1.4;">
+                            <li style="margin-bottom:0.25rem;">Si el cliente excede los 100 metros de fibra, pagará exceso de instalación.</li>
+                            <li style="margin-bottom:0.25rem;">El anexo gratis solo aplica al momento del registro. Después se cobra el valor mensual.</li>
+                            <li style="margin-bottom:0.25rem;">Los descuentos aplican por el tiempo indicado y luego vuelven al precio normal del plan.</li>
+                            <li>Los tickets se distribuyen automáticamente a sus servicios correspondientes.</li>
+                        </ul>
                     </div>
-                    <ul style="margin:0; padding-left:1.25rem; font-size:0.75rem; color:var(--text-secondary); line-height:1.4;">
-                        <li style="margin-bottom:0.25rem;">Si el cliente excede los 100 metros de fibra, pagará exceso de instalación.</li>
-                        <li style="margin-bottom:0.25rem;">El anexo gratis solo aplica al momento del registro. Después se cobra el valor mensual.</li>
-                        <li style="margin-bottom:0.25rem;">Los descuentos aplicados son permanentes para el cliente.</li>
-                        <li>Se generarán automáticamente las órdenes: instalación campo, app a virtual, e instalación de anexos.</li>
-                    </ul>
-                </div>
-                ${showAlert('El plan se filtra por la sede del vendedor y tipo de cliente. Contrato a nombre de: ' + esc(ctx.vendedor?.personal_nombre), 'info')}`;
+                    ${showAlert('El plan se filtra por la sede del vendedor y tipo de cliente. Contrato a nombre de: ' + esc(ctx.vendedor?.personal_nombre), 'info')}
+                  </div>
+
+                  <!-- COLUMNA DERECHA: Calculadora en tiempo real -->
+                  <div style="width:285px; flex-shrink:0;">
+                    <div class="ab-payment-preview" style="padding:1rem; background:var(--bg-surface-active); border-radius:var(--radius-md); border:1px solid var(--border-color); position:sticky; top:0.5rem;">
+                        <h4 style="margin:0 0 0.75rem 0; font-size:0.85rem; color:var(--text-primary); display:flex; align-items:center; gap:0.5rem;">
+                            <i class="fa-solid fa-calculator" style="color:var(--accent-color);"></i>
+                            Resumen de Pagos
+                        </h4>
+                        <div id="paymentPreviewContent" style="font-size:0.8rem;">
+                            <p style="color:var(--text-muted); font-size:0.75rem;">Seleccione un plan para ver el resumen de pagos...</p>
+                        </div>
+                    </div>
+                  </div>
+
+                </div>`;
 
             document.getElementById('wSede')?.addEventListener('change', async (e) => {
                 state.sede_id = e.target.value;
@@ -336,13 +529,28 @@
 
             document.getElementById('wPlan')?.addEventListener('change', (e) => {
                 const opt = e.target.selectedOptions[0];
+                state.plan_id = e.target.value;
                 state.costo_plan = opt?.dataset.costo || 0;
                 state.tipo_servicio = opt?.dataset.tipo || '';
-                // Show/hide anexo field based on plan type
-                const anexoContainer = document.getElementById('anexoContainer');
-                if (anexoContainer) {
-                    anexoContainer.style.display = (opt?.dataset.tipo === 'DUO' || opt?.dataset.tipo === 'TV') ? 'block' : 'none';
+                
+                const isDuoOrTv = state.tipo_servicio === 'DUO' || state.tipo_servicio === 'TV';
+                state.tiene_anexos = isDuoOrTv;
+                if (!state.tiene_anexos) {
+                    state.num_anexos = 0;
+                } else if (!state.num_anexos) {
+                    state.num_anexos = 1;
                 }
+                renderStep();
+            });
+
+            document.getElementById('wTieneAnexos')?.addEventListener('change', (e) => {
+                state.tiene_anexos = e.target.value === 'si';
+                if (!state.tiene_anexos) {
+                    state.num_anexos = 0;
+                } else if (!state.num_anexos) {
+                    state.num_anexos = 1;
+                }
+                renderStep();
             });
 
             // Collect app selection from single select
@@ -358,13 +566,8 @@
                         if (app) total += app.costo_plan;
                     });
                     state.costo_plan_total = total;
-                });
-            }
-
-            const omitirAppsEl = document.getElementById('wOmitirPagoApps');
-            if (omitirAppsEl) {
-                omitirAppsEl.addEventListener('change', (e) => {
-                    state.omitir_pago_apps = e.target.checked;
+                    // Actualizar calculadora (para mostrar orden de instalación de app)
+                    updatePaymentPreview();
                 });
             }
 
@@ -372,6 +575,16 @@
             if (numAnexosEl) {
                 numAnexosEl.addEventListener('change', (e) => {
                     state.num_anexos = parseInt(e.target.value) || 0;
+                    // Calculate anexos cost (first is free, rest are charged)
+                    const plan = mainPlanes.find(p => String(p.id) === String(state.plan_id));
+                    if (plan && (plan.tipo_servicio === 'DUO' || plan.tipo_servicio === 'TV')) {
+                        const anexosCobrables = Math.max(0, state.num_anexos - 1);
+                        // Assuming each additional anexo costs S/ 15 (this should come from plan config)
+                        const costoPorAnexo = 15;
+                        state.costo_anexos = anexosCobrables * costoPorAnexo;
+                    } else {
+                        state.costo_anexos = 0;
+                    }
                 });
             }
 
@@ -382,10 +595,10 @@
                 });
             }
 
-            const mesesGratisEl = document.getElementById('wMesesGratis');
-            if (mesesGratisEl) {
-                mesesGratisEl.addEventListener('change', (e) => {
-                    state.meses_gratis = parseInt(e.target.value) || 0;
+            const mesesDescuentoEl = document.getElementById('wMesesDescuento');
+            if (mesesDescuentoEl) {
+                mesesDescuentoEl.addEventListener('change', (e) => {
+                    state.meses_descuento = parseInt(e.target.value) || 0;
                     // Re-render to show/hide authorization field
                     renderStep();
                 });
@@ -398,22 +611,341 @@
                 });
             }
 
-            const cuotasDeudaEl = document.getElementById('wCuotasDeuda');
-            if (cuotasDeudaEl) {
-                cuotasDeudaEl.addEventListener('change', (e) => {
-                    state.cuotas_deuda = parseInt(e.target.value) || 1;
-                    // Recalculate and update display
-                    const newMontoCuota = (totalDeuda / state.cuotas_deuda).toFixed(2);
-                    const prorrateoEl = document.querySelector('.ab-deuda-prorrateo');
-                    if (prorrateoEl) {
-                        prorrateoEl.innerHTML = `<strong>Prorrateo actual:</strong> ${state.cuotas_deuda} cuotas de S/ ${newMontoCuota} cada una`;
+            // Add plan button handler
+            const btnAddPlan = document.getElementById('btnAddPlan');
+            if (btnAddPlan) {
+                btnAddPlan.addEventListener('click', () => {
+                    const planSelect = document.getElementById('wPlan');
+                    const selectedOption = planSelect.options[planSelect.selectedIndex];
+                    if (!selectedOption || !selectedOption.value) {
+                        alert('Seleccione un plan primero');
+                        return;
                     }
-                    // Update alert
-                    const alertEl = document.querySelector('.ab-alert-ab-alert-warn');
-                    if (alertEl) {
-                        alertEl.innerHTML = `Deuda total: ${money(totalDeuda)}. Prorrateo: ${state.cuotas_deuda} cuotas de S/ ${newMontoCuota}. Aplique descuento en pagos.`;
+                    
+                    const planId = selectedOption.value;
+                    const planName = selectedOption.text;
+                    const planCost = selectedOption.dataset.costo;
+                    const planTipo = selectedOption.dataset.tipo;
+                    
+                    // Check if plan is already in additional plans
+                    if (!state.planes_adicionales) state.planes_adicionales = [];
+                    if (state.planes_adicionales.some(p => p.id === planId)) {
+                        alert('Este plan ya está agregado');
+                        return;
+                    }
+                    
+                    // Add to additional plans
+                    state.planes_adicionales.push({
+                        id: planId,
+                        nombre: planName,
+                        costo: planCost,
+                        tipo: planTipo
+                    });
+                    
+                    // Clear the selection
+                    planSelect.value = '';
+                    
+                    // Re-render to show additional plans
+                    renderStep();
+                });
+            }
+
+            // Remove plan button handlers
+            document.querySelectorAll('.btn-remove-plan').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(btn.dataset.idx);
+                    if (!isNaN(idx) && state.planes_adicionales) {
+                        state.planes_adicionales.splice(idx, 1);
+                        renderStep();
                     }
                 });
+            });
+
+            // Function to update payment preview in real-time
+            const updatePaymentPreview = async () => {
+                const previewContent = document.getElementById('paymentPreviewContent');
+                if (!previewContent) return;
+
+                try {
+                    // Recopilar datos actuales del formulario
+                    state.plan_id = document.getElementById('wPlan')?.value;
+                    state.tiene_anexos = document.getElementById('wTieneAnexos')?.value === 'si';
+                    state.num_anexos = state.tiene_anexos ? (parseInt(document.getElementById('wNumAnexos')?.value) || 1) : 0;
+                    state.descuento_plan = parseFloat(document.getElementById('wDescuentoPlan')?.value) || 0;
+                    // Fix: evaluacion.py usa 'pct_descuento_plan' como nombre canónico
+                    state.pct_descuento_plan = state.descuento_plan;
+                    state.meses_descuento = parseInt(document.getElementById('wMesesDescuento')?.value) || 0;
+                    state.pct_descuento_instalacion = parseFloat(document.getElementById('wDescuentoInstalacion')?.value) || 0;
+                    state.cuotas_instalacion = parseInt(document.getElementById('wCuotasInstalacion')?.value) || 1;
+                    state.pct_descuento = parseFloat(document.getElementById('wDescuentoDeuda')?.value) || 0;
+                    state.cuotas = parseInt(document.getElementById('wCuotasDeuda')?.value) || 1;
+                    state.cuotas_deuda = state.cuotas;
+                    state.pct_descuento_apps = parseFloat(document.getElementById('wDescuentoApps')?.value) || 0;
+                    state.meses_descuento_apps = parseInt(document.getElementById('wMesesDescuentoApps')?.value) || 0;
+                    state.notas_beneficios = document.getElementById('wNotasBeneficios')?.value || '';
+
+                    if (!state.plan_id) {
+                        previewContent.innerHTML = '<p style="color:var(--text-muted); font-size:0.75rem;">Seleccione un plan para ver el resumen de pagos...</p>';
+                        return;
+                    }
+
+                    // Llamar evaluación con los datos actuales
+                    const ev = await fetchEvaluacion();
+                    
+                    const selectedPlan = mainPlanes.find(p => String(p.id) === String(state.plan_id));
+                    const planCost = ev.costo_plan_mensual || 0;
+                    const planCostWithDiscount = ev.costo_plan_con_descuento || 0;
+                    const discountAmount = planCost - planCostWithDiscount;
+                    const anexosCost = ev.costo_anexos || 0;
+                    const appsCost = ev.costo_apps_mensual || 0;
+                    const appsCostWithDiscount = ev.costo_apps_con_descuento || 0;
+                    const discountAppsAmount = appsCost - appsCostWithDiscount;
+                    const totalCobrar = ev.total_cobrar_ahora || 0;
+
+                    // Guardar costo de instalación en state para mostrar en el plan details card
+                    const costoInstalacionBase = ev.costo_instalacion_base || 0;
+                    if (state._costo_instalacion_base !== costoInstalacionBase) {
+                        state._costo_instalacion_base = costoInstalacionBase;
+                        // Actualizar el cuadrito de costo de instalación del plan card si ya está visible
+                        const instCardEl = document.querySelector('[data-inst-costo]');
+                        if (instCardEl) {
+                            instCardEl.textContent = `S/ ${costoInstalacionBase.toFixed(2)}`;
+                        }
+                    }
+
+                    // Debt calculations
+                    const db = ev.deuda_bruta || 0;
+                    const dd = ev.descuento_monto || 0;
+                    const dp = ev.deuda_a_pagar || 0;
+                    const dca = ev.deuda_cobrar_ahora || 0;
+                    const dcu = ev.cuotas_liberacion || 1;
+
+                    // Installation calculations
+                    const ib = ev.costo_instalacion_base || 0;
+                    const ic = ev.costo_instalacion || 0;
+                    const id = ib - ic;
+                    const ica = ev.instalacion_cobrar_ahora || 0;
+                    const icu = ev.cuotas_instalacion || 1;
+
+                    const normalPlanApps = planCost + appsCost;
+                    const discountPlanApps = discountAmount + discountAppsAmount;
+                    const finalPlanApps = planCostWithDiscount + appsCostWithDiscount;
+
+                    let html = `<div style="display:flex; flex-direction:column; gap:0.75rem;">`;
+
+                    // --- PLAN Y APLICATIVOS ---
+                    const esGratisPlan = (state.descuento_plan || 0) >= 100 && (state.meses_descuento || 0) > 0;
+                    const esGratisApps = (state.pct_descuento_apps || 0) >= 100 && (state.meses_descuento_apps || 0) > 0;
+                    html += `
+                        <div style="background:var(--bg-surface); padding:0.65rem; border-radius:var(--radius-sm); border-left:3px solid var(--accent-color);">
+                            <div style="font-weight:bold; font-size:0.75rem; margin-bottom:0.35rem; color:var(--text-primary);">Plan y Aplicativos</div>
+                            <div style="display:grid; grid-template-columns: 1fr auto; gap:0.25rem 1rem; font-size:0.72rem; color:var(--text-muted);">
+                                <span>Precio Normal:</span>
+                                <span style="font-weight:500; color:var(--text-primary);">${money(normalPlanApps)}</span>
+                                ${discountPlanApps > 0 ? `
+                                <span style="color:#15803d; font-weight:bold;">Descuento (${state.descuento_plan}%):</span>
+                                <span style="font-weight:bold; color:#15803d;">-${money(discountPlanApps)}</span>
+                                ` : ''}
+                                ${(esGratisPlan || esGratisApps) ? `
+                                <span style="grid-column:span 2; text-align:center; padding:0.4rem 0.5rem; background:rgba(34,197,94,0.15); border-radius:6px; color:#15803d; font-weight:bold; font-size:0.78rem; margin-top:0.25rem; letter-spacing:0.02em;">
+                                    🎉 ${esGratisPlan ? `GRATIS por ${state.meses_descuento} mes${state.meses_descuento > 1 ? 'es' : ''}` : ''}
+                                    ${esGratisApps && !esGratisPlan ? `Apps GRATIS por ${state.meses_descuento_apps} mes${state.meses_descuento_apps > 1 ? 'es' : ''}` : ''}
+                                </span>
+                                ` : `
+                                <span style="font-weight:bold; color:var(--text-primary); border-top:1px solid var(--border-color); padding-top:0.25rem; margin-top:0.25rem;">Subtotal Plan & Apps:</span>
+                                <span style="font-weight:bold; color:var(--text-primary); border-top:1px solid var(--border-color); padding-top:0.25rem; margin-top:0.25rem;">${money(finalPlanApps)}</span>
+                                `}
+                            </div>
+                        </div>
+                    `;
+
+                    // --- INSTALACIÓN (siempre visible cuando hay plan) ---
+                    const esGratisInstalacion = ic === 0 && ib > 0;
+                    html += `
+                        <div style="background:var(--bg-surface); padding:0.65rem; border-radius:var(--radius-sm); border-left:3px solid #eab308;">
+                            <div style="font-weight:bold; font-size:0.75rem; margin-bottom:0.35rem; color:var(--text-primary);">
+                                <i class="fa-solid fa-wrench" style="color:#eab308; margin-right:4px;"></i>
+                                Ticket de Instalación
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr auto; gap:0.25rem 1rem; font-size:0.72rem; color:var(--text-muted);">
+                                <span>Precio Normal:</span>
+                                <span style="font-weight:500; color:var(--text-primary);">${money(ib)}</span>
+                                ${id > 0 ? `
+                                <span style="color:#15803d; font-weight:bold;">Descuento (${state.pct_descuento_instalacion || 0}%):</span>
+                                <span style="font-weight:bold; color:#15803d;">-${money(id)}</span>
+                                ` : ''}
+                                ${esGratisInstalacion ? `
+                                <span style="grid-column:span 2; text-align:center; padding:0.35rem 0.5rem; background:rgba(34,197,94,0.15); border-radius:6px; color:#15803d; font-weight:bold; font-size:0.78rem; margin-top:0.2rem;">
+                                    🎉 INSTALACIÓN GRATIS
+                                </span>
+                                ` : `
+                                <span style="font-weight:bold; color:var(--text-primary); border-top:1px solid var(--border-color); padding-top:0.25rem; margin-top:0.25rem;">Instalación a Cobrar:</span>
+                                <span style="font-weight:bold; color:var(--text-primary); border-top:1px solid var(--border-color); padding-top:0.25rem; margin-top:0.25rem;">${money(ic)}</span>
+                                `}
+                                ${icu > 1 ? `
+                                <span style="font-style:italic; font-size:0.65rem; grid-column:span 2; margin-top:0.25rem; color:var(--accent-color);">
+                                    * Prorrateado en ${icu} cuotas de ${money(ica)} c/u (Cobrar ahora: ${money(ica)}).
+                                </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    // --- ORDEN DE INSTALACIÓN DE APPS (siempre se genera si hay apps, costo S/0) ---
+                    const appsSeleccionadas = ev.apps_nombres || [];
+                    if (appsSeleccionadas.length > 0) {
+                        html += `
+                        <div style="background:var(--bg-surface); padding:0.65rem; border-radius:var(--radius-sm); border-left:3px solid #8b5cf6;">
+                            <div style="font-weight:bold; font-size:0.75rem; margin-bottom:0.35rem; color:var(--text-primary);">
+                                <i class="fa-solid fa-mobile-screen" style="color:#8b5cf6; margin-right:4px;"></i>
+                                Orden de Instalación de Aplicativos
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr auto; gap:0.25rem 1rem; font-size:0.72rem; color:var(--text-muted);">
+                                <span>Aplicativos:</span>
+                                <span style="font-weight:500; color:var(--text-primary); text-align:right; font-size:0.68rem;">${appsSeleccionadas.join(', ')}</span>
+                                <span>Costo de Instalación:</span>
+                                <span style="font-weight:bold; color:#15803d;">GRATIS</span>
+                                <span style="font-style:italic; font-size:0.65rem; grid-column:span 2; color:var(--text-muted); margin-top:0.1rem;">
+                                    Se generará una orden de activación automáticamente al registrar.
+                                </span>
+                            </div>
+                        </div>
+                        `;
+                    }
+
+                    // --- ANEXOS ---
+                    if (state.tiene_anexos && state.num_anexos > 0) {
+                        const baseAnexoCosto = ev.costo_anexo_base || 15.00;
+                        const cobrables = Math.max(0, state.num_anexos - 1);
+                        const anexosBaseTotal = cobrables * baseAnexoCosto;
+                        const anexosDiscount = ev.descuento_anexos || 0;
+                        const anexosDiscountPct = ev.pct_descuento_anexos_aplicado || 0;
+                        html += `
+                            <div style="background:var(--bg-surface); padding:0.65rem; border-radius:var(--radius-sm); border-left:3px solid #3b82f6;">
+                                <div style="font-weight:bold; font-size:0.75rem; margin-bottom:0.35rem; color:var(--text-primary);">Anexos de TV</div>
+                                <div style="display:grid; grid-template-columns: 1fr auto; gap:0.25rem 1rem; font-size:0.72rem; color:var(--text-muted);">
+                                    <span>Cantidad de Anexos:</span>
+                                    <span style="font-weight:500; color:var(--text-primary);">${state.num_anexos}</span>
+                                    <span>Precio Unitario:</span>
+                                    <span style="font-weight:500; color:var(--text-primary);">${money(baseAnexoCosto)}</span>
+                                    <span>Costo Base (${cobrables} cobrados):</span>
+                                    <span style="font-weight:500; color:var(--text-primary);">${money(anexosBaseTotal)}</span>
+                                    ${anexosDiscount > 0 ? `
+                                    <span style="color:#15803d; font-weight:bold;">Descuento (${anexosDiscountPct}%):</span>
+                                    <span style="font-weight:bold; color:#15803d;">-${money(anexosDiscount)}</span>
+                                    ` : ''}
+                                    <span style="font-weight:bold; color:var(--text-primary); border-top:1px solid var(--border-color); padding-top:0.25rem; margin-top:0.25rem;">Costo Mensual Adicional:</span>
+                                    <span style="font-weight:bold; color:#1d4ed8; border-top:1px solid var(--border-color); padding-top:0.25rem; margin-top:0.25rem;">${money(anexosCost)}</span>
+                                    <span style="font-style:italic; font-size:0.65rem; grid-column:span 2; margin-top:0.15rem; color:var(--text-muted);">
+                                        (El primer anexo es gratis; ${cobrables} cobrados).
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // --- DEUDAS ---
+                    if (db > 0) {
+                        html += `
+                            <div style="background:rgba(239,68,68,0.03); padding:0.65rem; border-radius:var(--radius-sm); border-left:3px solid #ef4444; border:1px dashed rgba(239,68,68,0.2);">
+                                <div style="font-weight:bold; font-size:0.75rem; margin-bottom:0.35rem; color:#b91c1c;">Deudas Anteriores</div>
+                                <div style="display:grid; grid-template-columns: 1fr auto; gap:0.25rem 1rem; font-size:0.72rem; color:var(--text-muted);">
+                                    <span>Monto Deuda Bruta:</span>
+                                    <span style="font-weight:500; color:var(--text-primary);">${money(db)}</span>
+                                    ${dd > 0 ? `
+                                    <span style="color:#15803d; font-weight:bold;">Descuento:</span>
+                                    <span style="font-weight:bold; color:#15803d;">-${money(dd)}</span>
+                                    ` : ''}
+                                    <span style="font-weight:bold; color:var(--text-primary); border-top:1px solid rgba(239,68,68,0.1); padding-top:0.25rem; margin-top:0.25rem;">Deuda a Cobrar:</span>
+                                    <span style="font-weight:bold; color:var(--text-primary); border-top:1px solid rgba(239,68,68,0.1); padding-top:0.25rem; margin-top:0.25rem;">${money(dp)}</span>
+                                    ${dcu > 1 ? `
+                                    <span style="font-style:italic; font-size:0.65rem; grid-column:span 2; margin-top:0.15rem; color:#b91c1c;">
+                                        * Prorrateado en ${dcu} cuotas (Cobrar ahora: ${money(dca)}).
+                                    </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+
+                        // Sync dynamic info text on step 3 if elements exist
+                        const prorrateoEl = document.querySelector('.ab-deuda-prorrateo');
+                        if (prorrateoEl) {
+                            prorrateoEl.innerHTML = `<strong>Prorrateo actual:</strong> ${dcu} cuotas de ${money(dcu > 1 ? ev.deuda_cuota_mensual : dp)} cada una`;
+                        }
+                        const alertEl = document.querySelector('.ab-alert-warn');
+                        if (alertEl) {
+                            alertEl.innerHTML = `Deuda total: ${money(db)}. Descuento: ${money(dd)}. Prorrateo: ${dcu} cuotas de ${money(dcu > 1 ? ev.deuda_cuota_mensual : dp)}.`;
+                        }
+                    }
+
+                    html += `</div>`; // Close column flex
+
+                    // Total to Collect Now
+                    html += `
+                        <div style="margin-top:0.75rem; padding:0.75rem; background:var(--primary-color); color:white; border-radius:var(--radius-sm); text-align:center;">
+                            <div style="font-size:0.7rem; opacity:0.9;">Total a Cobrar Ahora</div>
+                            <div style="font-size:1.1rem; font-weight:bold;">${money(totalCobrar)}</div>
+                        </div>
+                    `;
+
+                    // Payment mode info
+                    const modoPago = state.modo_pago_plan || 'FIN_MES';
+                    html += `
+                        <div style="margin-top:0.5rem; padding:0.5rem; background:var(--bg-surface); border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+                            <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">Modo de Pago del Plan</div>
+                            <div style="font-weight:bold; color:var(--text-primary); font-size:0.8rem;">
+                                ${modoPago === 'CONTADO' ? '💵 Contado (Pago Adelantado)' : '📅 Fin de Mes'}
+                            </div>
+                            <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.15rem;">
+                                ${modoPago === 'CONTADO' ? 'El plan se paga ahora al registrarse' : 'El primer pago del plan será al fin del mes'}
+                            </div>
+                        </div>
+                    `;
+
+                    if (state.meses_descuento > 0) {
+                        html += `
+                            <div style="margin-top:0.5rem; font-size:0.7rem; color:var(--text-muted); text-align:center;">
+                                <i class="fa-solid fa-info-circle"></i> Descuento de plan aplicado por ${state.meses_descuento} mes${state.meses_descuento > 1 ? 'es' : ''}
+                            </div>
+                        `;
+                    }
+                    if (state.meses_descuento_apps > 0) {
+                        html += `
+                            <div style="margin-top:0.25rem; font-size:0.7rem; color:var(--text-muted); text-align:center;">
+                                <i class="fa-solid fa-info-circle"></i> Descuento de apps aplicado por ${state.meses_descuento_apps} mes${state.meses_descuento_apps > 1 ? 'es' : ''}
+                            </div>
+                        `;
+                    }
+
+                    previewContent.innerHTML = html;
+                } catch (error) {
+                    previewContent.innerHTML = `<p style="color:var(--error-color);">Error al calcular: ${error.message}</p>`;
+                }
+            };
+
+            // Eventos para actualización en tiempo real (change + input para números)
+            ['wTieneAnexos', 'wDescuentoPlan', 'wMesesDescuento', 'wNumAnexos', 'wApps', 'wOmitirPagoApps', 'wDescuentoInstalacion', 'wCuotasInstalacion', 'wDescuentoDeuda', 'wCuotasDeuda', 'wDescuentoApps', 'wMesesDescuentoApps'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', updatePaymentPreview);
+                    // También escuchar 'input' para actualización mientras se escribe
+                    if (el.type === 'number' || el.tagName === 'SELECT') {
+                        el.addEventListener('input', updatePaymentPreview);
+                    }
+                }
+            });
+
+            // Recopilar notas_beneficios cuando el usuario escribe
+            const notasEl = document.getElementById('wNotasBeneficios');
+            if (notasEl) {
+                notasEl.addEventListener('input', (e) => {
+                    state.notas_beneficios = e.target.value || '';
+                });
+            }
+
+            // Vista previa inicial si ya hay un plan seleccionado
+            if (state.plan_id) {
+                updatePaymentPreview();
             }
 
             return;
@@ -792,13 +1324,25 @@
             if (sedeEl) state.sede_id = sedeEl.value;
             state.plan_id = document.getElementById('wPlan')?.value;
             if (!state.plan_id) throw new Error('Seleccione un plan');
-            state.num_anexos = parseInt(document.getElementById('wNumAnexos')?.value) || 0;
+            state.tiene_anexos = document.getElementById('wTieneAnexos')?.value === 'si';
+            state.num_anexos = state.tiene_anexos ? (parseInt(document.getElementById('wNumAnexos')?.value) || 1) : 0;
             state.descuento_plan = parseFloat(document.getElementById('wDescuentoPlan')?.value) || 0;
-            state.meses_gratis = parseInt(document.getElementById('wMesesGratis')?.value) || 0;
+            // Fix: alias para el backend que usa 'pct_descuento_plan'
+            state.pct_descuento_plan = state.descuento_plan;
+            state.meses_descuento = parseInt(document.getElementById('wMesesDescuento')?.value) || 0;
+            state.pct_descuento_instalacion = parseFloat(document.getElementById('wDescuentoInstalacion')?.value) || 0;
+            state.cuotas_instalacion = parseInt(document.getElementById('wCuotasInstalacion')?.value) || 1;
+            state.pct_descuento = parseFloat(document.getElementById('wDescuentoDeuda')?.value) || 0;
+            state.cuotas = parseInt(document.getElementById('wCuotasDeuda')?.value) || 1;
+            state.cuotas_deuda = state.cuotas;
+            state.pct_descuento_apps = parseFloat(document.getElementById('wDescuentoApps')?.value) || 0;
+            state.meses_descuento_apps = parseInt(document.getElementById('wMesesDescuentoApps')?.value) || 0;
             state.autorizacion_supervisor = document.getElementById('wAutorizacionSup')?.value?.trim() || '';
-            state.cuotas_deuda = parseInt(document.getElementById('wCuotasDeuda')?.value) || 1;
-            // Ensure app_ids is set
+            state.notas_beneficios = document.getElementById('wNotasBeneficios')?.value || state.notas_beneficios || '';
+
+            // Ensure app_ids and planes_adicionales are set
             state.app_ids = state.app_ids || [];
+            state.planes_adicionales = state.planes_adicionales || [];
             
             // Consolidate billing data in structured object for billing system
             const selectedPlan = (ctx.planes || []).find(p => String(p.id) === String(state.plan_id));
@@ -817,7 +1361,7 @@
                 },
                 descuentos_permanentes: {
                     porcentaje_plan: state.descuento_plan,
-                    meses_gratis: state.meses_gratis,
+                    meses_descuento: state.meses_descuento,
                     requiere_autorizacion_supervisor: state.descuento_plan > 50 ? true : false,
                     codigo_autorizacion: state.autorizacion_supervisor || null
                 },
@@ -836,6 +1380,13 @@
                     }
                 }
             };
+
+            // Copy evaluated totals to root payload for backend compatibility
+            if (state.evaluacion) {
+                state.costo_instalacion = state.evaluacion.costo_instalacion;
+                state.costo_plan_con_descuento = state.evaluacion.costo_plan_con_descuento;
+                state.total_cobrar_ahora = state.evaluacion.total_cobrar_ahora;
+            }
         }
         if (step === 4) {
             state.modo_pago_plan = document.getElementById('wModoPlan')?.value || 'FIN_MES';
@@ -964,4 +1515,5 @@
     });
 
     window.AbonadosRegistro = { open, close };
+    console.log('AbonadosRegistro: Module loaded and window.AbonadosRegistro set');
 })();

@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.db import connection, transaction
@@ -95,8 +95,12 @@ def sistema_registro_cliente(datos):
 
     with transaction.atomic():
         # Invocación obligatoria del registro de responsabilidad transaccional en PostgreSQL (Regla 7)
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT set_auditoria_usuario(%s);", [int(vendedor_id)])
+        try:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT set_auditoria_usuario(%s);", [int(vendedor_id)])
+        except Exception:
+            pass
 
         client_id = None
         if not existing_client_id:
@@ -214,12 +218,21 @@ def sistema_registro_cliente(datos):
             # Store permanent discounts
             descuentos_perm = facturacion.get('descuentos_permanentes', {})
             descuento_plan = Decimal(str(descuentos_perm.get('porcentaje_plan') or 0))
-            meses_gratis = int(descuentos_perm.get('meses_gratis') or 0)
+            meses_gratis = int(descuentos_perm.get('meses_descuento') or descuentos_perm.get('meses_gratis') or 0)
             if descuento_plan > 0:
                 control_json['descuento_permanente'] = float(descuento_plan)
             if meses_gratis > 0:
                 control_json['meses_gratis'] = meses_gratis
                 control_json['fecha_fin_gratis'] = (date.today() + timedelta(days=30*meses_gratis)).isoformat()
+            
+            # Store app discounts
+            pct_descuento_apps = Decimal(str(datos.get('pct_descuento_apps') or 0))
+            meses_descuento_apps = int(datos.get('meses_descuento_apps') or 0)
+            if pct_descuento_apps > 0:
+                control_json['descuento_apps'] = float(pct_descuento_apps)
+            if meses_descuento_apps > 0:
+                control_json['meses_descuento_apps'] = meses_descuento_apps
+                control_json['fecha_fin_descuento_apps'] = (date.today() + timedelta(days=30*meses_descuento_apps)).isoformat()
             
             # Store debt proration info
             deuda_info = facturacion.get('deuda', {})
@@ -238,17 +251,76 @@ def sistema_registro_cliente(datos):
         else:
             # Legacy support: process individual fields
             descuento_plan = Decimal(str(datos.get('descuento_plan') or '0'))
-            meses_gratis = int(datos.get('meses_gratis') or 0)
+            meses_gratis = int(datos.get('meses_descuento') or datos.get('meses_gratis') or 0)
             if descuento_plan > 0:
                 control_json['descuento_permanente'] = float(descuento_plan)
             if meses_gratis > 0:
                 control_json['meses_gratis'] = meses_gratis
                 control_json['fecha_fin_gratis'] = (date.today() + timedelta(days=30*meses_gratis)).isoformat()
             
+            # Store app discounts in legacy support
+            pct_descuento_apps = Decimal(str(datos.get('pct_descuento_apps') or 0))
+            meses_descuento_apps = int(datos.get('meses_descuento_apps') or 0)
+            if pct_descuento_apps > 0:
+                control_json['descuento_apps'] = float(pct_descuento_apps)
+            if meses_descuento_apps > 0:
+                control_json['meses_descuento_apps'] = meses_descuento_apps
+                control_json['fecha_fin_descuento_apps'] = (date.today() + timedelta(days=30*meses_descuento_apps)).isoformat()
+
             cuotas_deuda = int(datos.get('cuotas_deuda') or 1)
             if cuotas_deuda > 1:
                 cuotas = cuotas_deuda
-        
+
+        # ────────────────────────────────────────────────────────────────
+        # Persistir descuentos estructurados para el sistema de facturación
+        # El campo 'descuentos' en control_operativo_json es la fuente de
+        # verdad para cobros mensuales, reconexiones y cualquier evento de pago.
+        # ────────────────────────────────────────────────────────────────
+        _pct_plan_v   = float(datos.get('pct_descuento_plan') or datos.get('descuento_plan') or 0)
+        _meses_plan_v = int(datos.get('meses_descuento') or 0)
+        _pct_inst_v   = float(datos.get('pct_descuento_instalacion') or 0)
+        _cuotas_inst  = int(datos.get('cuotas_instalacion') or 1)
+        _pct_apps_v   = float(datos.get('pct_descuento_apps') or 0)
+        _meses_apps_v = int(datos.get('meses_descuento_apps') or 0)
+        _ev_data      = evaluacion  # ya definido en línea 198
+        _costo_plan_b = float(_ev_data.get('costo_plan_mensual') or 0)
+        _costo_plan_d = float(_ev_data.get('costo_plan_con_descuento') or _costo_plan_b)
+        _costo_apps_b = float(_ev_data.get('costo_apps_mensual') or 0)
+        _costo_apps_d = float(_ev_data.get('costo_apps_con_descuento') or _costo_apps_b)
+        _costo_anx    = float(_ev_data.get('costo_anexos') or 0)
+        _nota_v       = (datos.get('notas_beneficios') or '').strip()
+
+        control_json['descuentos'] = {
+            'plan': {
+                'porcentaje':  _pct_plan_v,
+                'meses':       _meses_plan_v,
+                'fecha_inicio': date.today().isoformat(),
+                'fecha_fin':   (date.today() + timedelta(days=30 * _meses_plan_v)).isoformat() if _meses_plan_v > 0 else None,
+                'motivo':      _nota_v,
+                'es_gratis':   _pct_plan_v >= 100,
+            },
+            'apps': {
+                'porcentaje':  _pct_apps_v,
+                'meses':       _meses_apps_v,
+                'fecha_inicio': date.today().isoformat(),
+                'fecha_fin':   (date.today() + timedelta(days=30 * _meses_apps_v)).isoformat() if _meses_apps_v > 0 else None,
+                'es_gratis':   _pct_apps_v >= 100,
+            },
+            'instalacion': {
+                'porcentaje':  _pct_inst_v,
+                'cuotas':      _cuotas_inst,
+                'es_gratis':   _pct_inst_v >= 100,
+            },
+        }
+        control_json['costo_mensual_base']            = _costo_plan_b
+        control_json['costo_mensual_con_descuento']   = _costo_plan_d
+        control_json['costo_apps_mensual_base']       = _costo_apps_b
+        control_json['costo_apps_mensual_con_descuento'] = _costo_apps_d
+        control_json['costo_anexos_mensual']          = _costo_anx
+        if _nota_v:
+            control_json['notas_beneficios'] = _nota_v
+        # ────────────────────────────────────────────────────────────────
+
         if pagar_deuda_cuotas and cuotas > 1 and deuda_a_pagar > 0:
             monto_cuota = (deuda_a_pagar / cuotas).quantize(Decimal('0.01'))
             total_cobrar = float(evaluacion.get('total_cobrar_ahora') or 0)
@@ -289,8 +361,16 @@ def sistema_registro_cliente(datos):
         suscripcion.save(update_fields=['codigo'])
 
         ticket_id = None
+        app_tickets = []  # Store app installation tickets separately
+        
         if datos.get('generar_orden_instalacion', True):
-            p_instalacion = _decimal(datos.get('precio_instalacion') or datos.get('precio_base') or datos.get('costo_instalacion'), '0.00')
+            p_instalacion = _decimal(
+                datos.get('precio_instalacion') or 
+                datos.get('precio_base') or 
+                datos.get('costo_instalacion') or 
+                evaluacion.get('costo_instalacion'), 
+                '0.00'
+            )
             
             # Orden de instalación configurada bajo tipos enumerados acotados (Filtro del MVP)
             ticket_campo = TicketsOrdenes.objects.create(
@@ -307,64 +387,44 @@ def sistema_registro_cliente(datos):
             )
             ticket_id = ticket_campo.id
             
-            # Generate app installation ticket if apps selected
-            app_ids = datos.get('app_ids', [])
-            if app_ids:
-                TicketsOrdenes.objects.create(
-                    servicio=suscripcion,
-                    categoria='instalacion',
-                    area='planta_interna',
-                    tecnologia='todos',
-                    modalidad='remoto',
-                    nombre_ticket='Orden de Instalación - App a Virtual (Remoto)',
-                    estado='pendiente',
-                    prioridad='media',
-                    precio_base=Decimal('0'),
-                    empleado_atc_generador_id=vendedor_id
-                )
-            
-            # Generate anexo installation tickets for DUO/TV plans
+            # Generate anexo installation tickets (Single ticket for all anexos as requested)
             num_anexos = int(datos.get('num_anexos') or 0)
             if num_anexos > 0:
                 tipo_servicio = plan.tipo_servicio.lower() if plan.tipo_servicio else ''
-                if 'duo' in tipo_servicio or 'tv' in tipo_servicio:
-                    # First anexo is free at registration
-                    anexos_cobrar = max(0, num_anexos - 1)
-                    for i in range(num_anexos):
-                        es_gratis = (i == 0)  # First one is free
-                        costo_anexo = Decimal('0') if es_gratis else p_instalacion
-                        
-                        # Activate instalacion_anexo special function
-                        funciones_anexo = {
-                            "instalacion_anexo": {
-                                "activado": True,
-                                "fecha_activacion": timezone.now().isoformat(),
-                                "tipo_anexo": tipo_servicio.upper(),
-                                "costo_mensual": float(costo_anexo) if not es_gratis else 0,
-                                "es_gratis_registro": es_gratis,
-                                "estado": "pendiente",
-                                "numero_anexo": i + 1,
-                                "total_anexos": num_anexos
-                            }
-                        }
-                        
-                        TicketsOrdenes.objects.create(
-                            servicio=suscripcion,
-                            categoria='instalacion',
-                            area='planta_externa',
-                            tecnologia='tv' if 'tv' in tipo_servicio else 'duo',
-                            modalidad='campo',
-                            nombre_ticket=f'Instalación de Anexo #{i+1} ({"GRATIS" if es_gratis else "COBRADO"})',
-                            estado='pendiente',
-                            prioridad='media',
-                            precio_base=costo_anexo,
-                            empleado_atc_generador_id=vendedor_id,
-                            funciones_especiales=funciones_anexo
-                        )
+                # Cost calculation: first is free, rest are charged monthly
+                anexos_cobrar = max(0, num_anexos - 1)
+                eval_payload = datos.get('evaluacion') or {}
+                costo_anexo_unitario = Decimal(str(eval_payload.get('costo_anexo_base') or getattr(plan, 'costo_conexion_tv_adicional', 15.00) or 15.00))
+                costo_anexo_mensual_total = anexos_cobrar * costo_anexo_unitario
+                
+                funciones_anexo = {
+                    "instalacion_anexo": {
+                        "activado": True,
+                        "fecha_activacion": timezone.now().isoformat(),
+                        "tipo_anexo": tipo_servicio.upper() or 'DUO',
+                        "costo_mensual": float(costo_anexo_mensual_total),
+                        "es_gratis_registro": True,
+                        "estado": "pendiente",
+                        "total_anexos": num_anexos
+                    }
+                }
+                
+                TicketsOrdenes.objects.create(
+                    servicio=suscripcion,
+                    categoria='instalacion',
+                    area='planta_externa',
+                    tecnologia='tv' if 'tv' in tipo_servicio else 'duo',
+                    modalidad='campo',
+                    nombre_ticket=f'Instalación de Anexos (Cantidad: {num_anexos})',
+                    estado='pendiente',
+                    prioridad='media',
+                    precio_base=Decimal('0.00'),
+                    empleado_atc_generador_id=vendedor_id,
+                    funciones_especiales=funciones_anexo
+                )
 
         # Registro de planes dinámicos adicionales opcionales (apps)
         app_ids = datos.get('app_ids', [])
-        omitir_pago_apps = bool(datos.get('omitir_pago_apps'))
         for app_id in app_ids:
             try:
                 app_plan = Planes.objects.get(id=app_id, tipo_servicio='app')
@@ -392,19 +452,20 @@ def sistema_registro_cliente(datos):
                 app_sub.codigo = obtener_codigo_servicio_actualizado(app_sub)
                 app_sub.save(update_fields=['codigo'])
                 
-                if omitir_pago_apps:
-                    FacturacionPagos.objects.create(
-                        servicio=app_sub,
-                        ruc_emisor_id=int(datos.get('ruc_emisor_id') or 1),
-                        tipo_documento='nota_venta',
-                        tipo_transaccion='exoneracion',
-                        monto=Decimal('0.00'),
-                        descripcion=f'Pago inicial de aplicativo {app_plan.nombre_plan} omitido (Gratis por 1 año)',
-                        vendedor_id=vendedor_id,
-                        fecha_transaccion=timezone.now(),
-                        fecha_vencimiento=date.today(),
-                        fecha_creacion=timezone.now(),
-                    )
+                # Create installation ticket for this app subscription (separate per service)
+                app_ticket = TicketsOrdenes.objects.create(
+                    servicio=app_sub,
+                    categoria='instalacion',
+                    area='planta_interna',
+                    tecnologia='todos',
+                    modalidad='remoto',
+                    nombre_ticket=f'Orden de Instalación - {app_plan.nombre_plan} (Remoto)',
+                    estado='pendiente',
+                    prioridad='media',
+                    precio_base=Decimal('0.00'),
+                    empleado_atc_generador_id=vendedor_id
+                )
+                app_tickets.append(app_ticket.id)
             except Planes.DoesNotExist:
                 continue
 
@@ -413,6 +474,7 @@ def sistema_registro_cliente(datos):
         'cliente_id': suscripcion.cliente_id,
         'suscripcion_id': suscripcion.codigo,
         'ticket_id': ticket_id,
+        'app_ticket_ids': app_tickets,  # Return app installation ticket IDs separately
         'sede': plan.sede.nombre,
         'pago': {
             'modo_plan': datos.get('modo_pago_plan', 'FIN_MES'),

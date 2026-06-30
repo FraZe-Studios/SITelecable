@@ -251,6 +251,9 @@ window.initSedeTicketsModule = async () => {
             if (t.corte_anexo) {
                 badgesFunciones.push('<span class="config-badge" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.2);">Anexo -</span>');
             }
+            if (t.reiniciar_servicio) {
+                badgesFunciones.push('<span class="config-badge" style="background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2);">Reiniciar Servicio</span>');
+            }
 
             const funcionesHtml = badgesFunciones.length > 0
                 ? `<div style="display:flex;gap:4px;flex-wrap:wrap;">${badgesFunciones.join('')}</div>`
@@ -372,6 +375,18 @@ window.initSedeTicketsModule = async () => {
         const isEdit = !!ticketExistente;
         const t = ticketExistente || {};
 
+        // Ensure all special function properties exist (for backward compatibility)
+        const defaultFalse = ['migracion_plan', 'migracion_genera_cambio_equipo', 'es_instalacion',
+            'cobra_materiales_liquidar', 'editar_mapa', 'mantiene_equipo_anterior',
+            'requiere_nuevo_suministro', 'genera_merma', 'cambio_equipo',
+            'corte_temporal', 'morosidad', 'corte_definitivo', 'reiniciar_servicio',
+            'instalacion_anexo', 'corte_anexo'];
+        defaultFalse.forEach(prop => {
+            if (t[prop] === undefined || t[prop] === null) {
+                t[prop] = false;
+            }
+        });
+
         // Usar valores de los tickets registrados (solo lo que existe en BD)
         const sugCategorias = categoriasUnicas.length ? categoriasUnicas : ['incidencia', 'averia', 'requerimiento', 'instalacion'];
         const sugModalidades = modalidadesUnicas.length ? modalidadesUnicas : ['remoto', 'campo'];
@@ -407,6 +422,7 @@ window.initSedeTicketsModule = async () => {
                     </div>
 
                     <form id="ticketCatalogoForm">
+                        <input type="hidden" name="ticket_id" value="${t.id || ''}">
                         
                         <!-- SECCIÓN 1: DATOS BÁSICOS -->
                         <div class="config-form-group" style="margin-bottom:1rem;">
@@ -618,6 +634,18 @@ window.initSedeTicketsModule = async () => {
                                         </div>
                                     </label>
 
+                                    <!-- Reconexión -->
+                                    <label style="display:flex;align-items:center;gap:0.6rem;padding:0.55rem 0.75rem;border-radius:6px;cursor:pointer;border:1px solid ${t.reiniciar_servicio ? '#22c55e' : 'var(--border-color)'};background:${t.reiniciar_servicio ? 'rgba(34,197,94,0.08)' : 'transparent'};transition:all 0.2s;" id="lbl_reiniciar_servicio">
+                                        <input type="checkbox" name="reiniciar_servicio" id="chk_reiniciar_servicio"
+                                               ${t.reiniciar_servicio ? 'checked' : ''}
+                                               style="accent-color:#22c55e;width:15px;height:15px;cursor:pointer;flex-shrink:0;">
+                                        <span style="display:flex;align-items:center;gap:0.4rem;color:#22c55e;flex-shrink:0;">${GLOBAL_ICONS.plusCircle(13)}</span>
+                                        <div>
+                                            <div style="font-size:0.81rem;font-weight:600;color:var(--text-primary);">Reconexión</div>
+                                            <div style="font-size:0.71rem;color:var(--text-muted);">Reinicia el ciclo de facturación desde la fecha de liquidación</div>
+                                        </div>
+                                    </label>
+
                                     <!-- Instalación de anexo -->
                                     <label style="display:flex;align-items:center;gap:0.6rem;padding:0.55rem 0.75rem;border-radius:6px;cursor:pointer;border:1px solid ${t.instalacion_anexo ? '#14b8a6' : 'var(--border-color)'};background:${t.instalacion_anexo ? 'rgba(20,184,166,0.08)' : 'transparent'};transition:all 0.2s;" id="lbl_instalacion_anexo">
                                         <input type="checkbox" name="instalacion_anexo" id="chk_instalacion_anexo"
@@ -654,7 +682,7 @@ window.initSedeTicketsModule = async () => {
                                 ${GLOBAL_ICONS.cancel()} Cancelar
                             </button>
                             <button type="submit" class="config-btn-save">
-                                ${GLOBAL_ICONS.save()} Guardar
+                                ${isEdit ? GLOBAL_ICONS.edit() + ' Editar' : GLOBAL_ICONS.add() + ' Agregar'}
                             </button>
                         </div>
                     </form>
@@ -682,7 +710,7 @@ window.initSedeTicketsModule = async () => {
             const form = e.target;
             const submitBtn = form.querySelector('[type="submit"]');
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Guardando…';
+            submitBtn.textContent = isEdit ? 'Editando…' : 'Agregando…';
 
             const data = {
                 sede_id: sedeId,
@@ -707,13 +735,17 @@ window.initSedeTicketsModule = async () => {
                 corte_temporal: form.corte_temporal ? form.corte_temporal.checked : false,
                 morosidad: form.morosidad ? form.morosidad.checked : false,
                 corte_definitivo: form.corte_definitivo ? form.corte_definitivo.checked : false,
+                reiniciar_servicio: form.reiniciar_servicio ? form.reiniciar_servicio.checked : false,
                 instalacion_anexo: form.instalacion_anexo ? form.instalacion_anexo.checked : false,
                 corte_anexo: form.corte_anexo ? form.corte_anexo.checked : false,
                 flag_funciones_especiales: t.flag_funciones_especiales || false,
                 funciones_especiales: t.funciones_especiales || '',
                 es_universal: false,
             };
-            if (isEdit) data.ticket_id = t.id;
+            // Send ticket_id from current ticket object if editing (t.id) to prevent hidden field value mismatch
+            if (isEdit && t.id) {
+                data.ticket_id = t.id;
+            }
 
             try {
                 const resp = await fetch('/api/sede/config/catalogo-ticket/', {
@@ -735,9 +767,20 @@ window.initSedeTicketsModule = async () => {
                             if (index !== -1) {
                                 todosLosTickets[index] = json.ticket;
                             }
+                            // También actualizar en currentSedeConfigData para consistencia al cambiar de pestañas
+                            if (window.currentSedeConfigData && window.currentSedeConfigData.catalogo_tickets) {
+                                const origIndex = window.currentSedeConfigData.catalogo_tickets.findIndex(x => x.id === t.id);
+                                if (origIndex !== -1) {
+                                    window.currentSedeConfigData.catalogo_tickets[origIndex] = json.ticket;
+                                }
+                            }
                         } else {
                             // Agregar nuevo ticket
                             todosLosTickets.push(json.ticket);
+                            // También agregar en currentSedeConfigData para consistencia al cambiar de pestañas
+                            if (window.currentSedeConfigData && window.currentSedeConfigData.catalogo_tickets) {
+                                window.currentSedeConfigData.catalogo_tickets.push(json.ticket);
+                            }
                         }
                     }
                     // Actualizar filtros con los nuevos valores
@@ -745,12 +788,12 @@ window.initSedeTicketsModule = async () => {
                 } else {
                     alert(`Error: ${json.message}`);
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Guardar';
+                    submitBtn.textContent = isEdit ? 'Editar' : 'Agregar';
                 }
             } catch {
                 alert('Error de conexión al guardar el ticket.');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Guardar';
+                submitBtn.textContent = isEdit ? 'Editar' : 'Agregar';
             }
         });
     }

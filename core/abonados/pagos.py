@@ -128,6 +128,198 @@ def sistema_actualizar_fecha_corte_por_pagos(servicio):
     return nueva_fecha_corte
 
 
+def sistema_agregar_beneficio(servicio_id, tipo_beneficio, descuento_porcentaje, nota, fecha_expiracion=None):
+    """
+    Agrega un beneficio al servicio con nota guardada.
+    tipo_beneficio: 'instalacion_gratis', 'reconexion_gratis', 'descuento_especial', etc.
+    """
+    from core.models.models_generados import ServiciosAbonados
+    
+    try:
+        servicio = ServiciosAbonados.objects.get(pk=servicio_id)
+    except ServiciosAbonados.DoesNotExist:
+        raise ValueError('Servicio no encontrado')
+    
+    if not isinstance(servicio.control_operativo_json, dict):
+        servicio.control_operativo_json = {}
+    
+    if 'beneficios' not in servicio.control_operativo_json:
+        servicio.control_operativo_json['beneficios'] = {}
+    
+    from datetime import datetime
+    if fecha_expiracion:
+        if isinstance(fecha_expiracion, str):
+            fecha_exp = datetime.fromisoformat(fecha_expiracion).isoformat()
+        else:
+            fecha_exp = fecha_expiracion.isoformat()
+    else:
+        fecha_exp = None
+    
+    servicio.control_operativo_json['beneficios'][tipo_beneficio] = {
+        'estado': 'activo',
+        'descuento_porcentaje': float(descuento_porcentaje),
+        'nota': nota,
+        'fecha_creacion': datetime.now().isoformat(),
+        'fecha_expiracion': fecha_exp,
+        'creado_por': 'sistema'
+    }
+    
+    servicio.save(update_fields=['control_operativo_json'])
+    return {'status': 'success', 'beneficio': servicio.control_operativo_json['beneficios'][tipo_beneficio]}
+
+
+def sistema_eliminar_beneficio(servicio_id, tipo_beneficio):
+    """
+    Elimina o desactiva un beneficio del servicio.
+    """
+    from core.models.models_generados import ServiciosAbonados
+    
+    try:
+        servicio = ServiciosAbonados.objects.get(pk=servicio_id)
+    except ServiciosAbonados.DoesNotExist:
+        raise ValueError('Servicio no encontrado')
+    
+    if not isinstance(servicio.control_operativo_json, dict):
+        servicio.control_operativo_json = {}
+    
+    if 'beneficios' in servicio.control_operativo_json and tipo_beneficio in servicio.control_operativo_json['beneficios']:
+        servicio.control_operativo_json['beneficios'][tipo_beneficio]['estado'] = 'inactivo'
+        servicio.save(update_fields=['control_operativo_json'])
+        return {'status': 'success', 'message': f'Beneficio {tipo_beneficio} desactivado'}
+    
+    return {'status': 'error', 'message': 'Beneficio no encontrado'}
+
+
+def sistema_obtener_beneficios_activos(servicio_id):
+    """
+    Retorna los beneficios activos de un servicio.
+    """
+    from core.models.models_generados import ServiciosAbonados
+    
+    try:
+        servicio = ServiciosAbonados.objects.get(pk=servicio_id)
+    except ServiciosAbonados.DoesNotExist:
+        return []
+    
+    if not isinstance(servicio.control_operativo_json, dict):
+        return []
+    
+    beneficios = servicio.control_operativo_json.get('beneficios', {})
+    activos = []
+    
+    from datetime import datetime
+    hoy = date.today()
+    
+    for key, beneficio in beneficios.items():
+        if isinstance(beneficio, dict) and beneficio.get('estado') == 'activo':
+            # Verificar expiración
+            fecha_expiracion = beneficio.get('fecha_expiracion')
+            if fecha_expiracion:
+                try:
+                    if isinstance(fecha_expiracion, str):
+                        fecha_exp = datetime.fromisoformat(fecha_expiracion).date()
+                    else:
+                        fecha_exp = fecha_expiracion
+                    if fecha_exp < hoy:
+                        continue  # Expirado, no incluir
+                except (ValueError, AttributeError):
+                    pass
+            
+            activos.append({
+                'tipo': key,
+                'descuento_porcentaje': beneficio.get('descuento_porcentaje'),
+                'nota': beneficio.get('nota'),
+                'fecha_creacion': beneficio.get('fecha_creacion'),
+                'fecha_expiracion': fecha_expiracion
+            })
+    
+    return activos
+
+
+def _aplicar_descuento_activo(servicio, monto_base, concepto):
+    """
+    Verifica y aplica descuentos activos del servicio.
+    Retorna: (monto_con_descuento, descuento_aplicado, info_descuento)
+    """
+    if not servicio or not isinstance(servicio.control_operativo_json, dict):
+        return monto_base, Decimal('0'), None
+    
+    control = servicio.control_operativo_json
+    oferta = control.get('oferta', {})
+    beneficios = control.get('beneficios', {})
+    
+    descuento_total = Decimal('0')
+    info_descuento = None
+    
+    # Verificar descuento de oferta pendiente aprobada
+    if oferta and oferta.get('estado') == 'aprobada':
+        descuento_pct = _decimal(oferta.get('descuento_plan') or 0)
+        meses_descuento = int(oferta.get('meses_descuento') or 0)
+        
+        if descuento_pct > 0 and meses_descuento > 0:
+            meses_usados = int(oferta.get('meses_descuento_usados') or 0)
+            if meses_usados < meses_descuento:
+                # Aplicar descuento
+                descuento_monto = monto_base * (descuento_pct / Decimal('100'))
+                descuento_total += descuento_monto
+                
+                info_descuento = {
+                    'tipo': 'oferta',
+                    'porcentaje': float(descuento_pct),
+                    'monto': float(descuento_monto),
+                    'mes_restante': meses_descuento - meses_usados - 1
+                }
+                
+                # Actualizar meses usados
+                oferta['meses_descuento_usados'] = meses_usados + 1
+                servicio.control_operativo_json['oferta'] = oferta
+                servicio.save(update_fields=['control_operativo_json'])
+    
+    # VerificarBenefits activos (instalación gratis, reconexión gratis)
+    if beneficios:
+        from datetime import datetime
+        hoy = date.today()
+        
+        for key, beneficio in beneficios.items():
+            if isinstance(beneficio, dict) and beneficio.get('estado') == 'activo':
+                # Verificar si el beneficio no ha expirado
+                fecha_expiracion = beneficio.get('fecha_expiracion')
+                if fecha_expiracion:
+                    try:
+                        if isinstance(fecha_expiracion, str):
+                            fecha_exp = datetime.fromisoformat(fecha_expiracion).date()
+                        else:
+                            fecha_exp = fecha_expiracion
+                        if fecha_exp < hoy:
+                            # Beneficio expirado, marcar como expirado
+                            beneficio['estado'] = 'expirado'
+                            servicio.control_operativo_json['beneficios'][key] = beneficio
+                            servicio.save(update_fields=['control_operativo_json'])
+                            continue
+                    except (ValueError, AttributeError):
+                        pass
+                
+                descuento_pct = _decimal(beneficio.get('descuento_porcentaje') or 0)
+                if descuento_pct > 0:
+                    descuento_monto = monto_base * (descuento_pct / Decimal('100'))
+                    descuento_total += descuento_monto
+                    
+                    if not info_descuento:
+                        info_descuento = {
+                            'tipo': key,
+                            'porcentaje': float(descuento_pct),
+                            'monto': float(descuento_monto),
+                            'nota': beneficio.get('nota', '')
+                        }
+                    else:
+                        # Si hay múltiples descuentos, combinar
+                        info_descuento['monto'] += float(descuento_monto)
+                        info_descuento['tipo'] = f"múltiple ({info_descuento['tipo']}, {key})"
+    
+    monto_final = max(Decimal('0'), monto_base - descuento_total)
+    return monto_final, descuento_total, info_descuento
+
+
 @transaction.atomic
 def _corregir_tipo_comprobante_por_servicio(tipo_comp, servicio, es_plan_pago):
     """
@@ -202,6 +394,17 @@ def sistema_registrar_pago_cliente(datos):
         es_plan_pago = _es_cargo_servicio_obligatorio(descripcion=concepto)
 
     tipo_comp = _corregir_tipo_comprobante_por_servicio(datos.get('tipo_comprobante'), servicio, es_plan_pago)
+
+    # Aplicar descuento automático si corresponde
+    monto_con_descuento = monto_total
+    descuento_aplicado = Decimal('0')
+    info_descuento = None
+    
+    if es_plan_pago:
+        monto_con_descuento, descuento_aplicado, info_descuento = _aplicar_descuento_activo(servicio, monto_total, concepto)
+        if descuento_aplicado > 0:
+            # Actualizar el monto a cobrar con el descuento aplicado
+            monto_total = monto_con_descuento
 
     if deuda_id:
         if getattr(deuda, 'tipo_documento', '').lower() != tipo_comp.lower():
@@ -368,6 +571,17 @@ def sistema_registrar_multipago_cliente(datos):
             es_plan_pago = _es_cargo_servicio_obligatorio(descripcion=concepto_cargo)
 
         tipo_comp = _corregir_tipo_comprobante_por_servicio(tipo_comp_input, servicio, es_plan_pago)
+
+        # Aplicar descuento automático si corresponde
+        monto_pago_con_descuento = monto_pago
+        descuento_aplicado = Decimal('0')
+        info_descuento = None
+        
+        if es_plan_pago:
+            monto_pago_con_descuento, descuento_aplicado, info_descuento = _aplicar_descuento_activo(servicio, monto_pago, concepto_cargo)
+            if descuento_aplicado > 0:
+                # Actualizar el monto a cobrar con el descuento aplicado
+                monto_pago = monto_pago_con_descuento
 
         if deuda_id > 0:
             if getattr(deuda, 'tipo_documento', '').lower() != tipo_comp.lower():

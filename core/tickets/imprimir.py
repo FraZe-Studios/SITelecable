@@ -2,7 +2,7 @@ import re as _re
 from django.shortcuts import render
 from django.http import HttpResponse
 from core.models.models_generados import (
-    Tickets, SedeRuc, TicketTecnicosAsignados, MaterialesLiquidadosTicket
+    Tickets, SedeRuc
 )
 from core.abonados.generador import (
     obtener_codigo_ticket_actualizado,
@@ -44,29 +44,34 @@ def imprimir(request):
         codigo_cliente = obtener_codigo_cliente_actualizado(cliente) if cliente else '—'
         codigo_servicio = obtener_codigo_servicio_actualizado(servicio) if servicio else '—'
 
-        tecnicos = list(
-            TicketTecnicosAsignados.objects.filter(ticket_orden=ticket)
-            .values_list('tecnico__nombre_completo', flat=True)
-        )
+        # Fetching assignee name (single technician from tecnico_asignado_id)
+        tecnicos = []
+        if ticket.tecnico_asignado_id:
+            from core.models.usuarios import Usuario
+            try:
+                tecnico = Usuario.objects.get(pk=ticket.tecnico_asignado_id)
+                tecnicos = [tecnico.nombre_completo]
+            except Usuario.DoesNotExist:
+                pass
 
-        materiales = [
-            {
-                'material__nombre_material': m['descripcion'],
-                'cantidad_usada': float(m['cantidad']),
-                'cantidad_exceso': 0.0,
-                'monto_calculado': float(m['precio_total'] or 0.0),
-            }
-            for m in MaterialesLiquidadosTicket.objects.filter(ticket_orden=ticket).values('descripcion', 'cantidad', 'precio_total')
-        ]
+        # Materiales from materiales_consumidos_json
+        materiales = []
+        if ticket.materiales_consumidos_json:
+            for m in ticket.materiales_consumidos_json:
+                materiales.append({
+                    'descripcion': m.get('descripcion', ''),
+                    'cantidad': m.get('cantidad', 0),
+                    'precio_total': m.get('cantidad', 0) * m.get('precio_unitario', 0),
+                })
         materiales_usados_list = []
         materiales_retirados_list = []
         for m in materiales:
-            desc = m['material__nombre_material'] or ''
+            desc = m['descripcion'] or ''
             if '[RETIRO]' in desc.upper():
                 desc_limpia = _re.sub(r'\[retiro\]', '', desc, flags=_re.IGNORECASE).strip()
-                materiales_retirados_list.append(f"{desc_limpia} (Cant: {int(m['cantidad_usada'])})")
+                materiales_retirados_list.append(f"{desc_limpia} (Cant: {int(m['cantidad'])})")
             else:
-                materiales_usados_list.append(f"{desc} (Cant: {int(m['cantidad_usada'])})")
+                materiales_usados_list.append(f"{desc} (Cant: {int(m['cantidad'])})")
 
         materiales_usados_str = "<br>".join(materiales_usados_list) or "—"
         materiales_retirados_str = "<br>".join(materiales_retirados_list) or "—"

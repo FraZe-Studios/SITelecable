@@ -278,6 +278,7 @@ class TicketFuncionesUI {
                     ${this.renderizarFuncion('mantiene_equipo', 'Mantiene Equipo', 'El equipo anterior se mantiene', funciones.mantiene_equipo)}
                     ${this.renderizarFuncion('nuevo_suministro', 'Nuevo Suministro', 'Requiere N° suministro nuevo', funciones.nuevo_suministro, true)}
                     ${this.renderizarFuncion('genera_merma', 'Genera Merma', 'Registra baja de materiales', funciones.genera_merma)}
+                    ${this.renderizarFuncion('reiniciar_servicio', 'Reconexión', 'Reinicia el ciclo de facturación desde la fecha de liquidación', funciones.reiniciar_servicio)}
                 </div>
             </div>
         `;
@@ -376,6 +377,14 @@ class TicketFuncionesUI {
                     </div>
                 `;
                 break;
+            case 'reiniciar_servicio':
+                detalles = `
+                    <div class="funcion-detalles">
+                        ${funcion.fecha_liquidacion ? `<div>Fecha liquidación: ${new Date(funcion.fecha_liquidacion).toLocaleString()}</div>` : ''}
+                        ${funcion.nuevo_ciclo_facturacion ? `<div>Nuevo ciclo: ${funcion.nuevo_ciclo_facturacion}</div>` : ''}
+                    </div>
+                `;
+                break;
         }
 
         return detalles;
@@ -462,6 +471,13 @@ class TicketFuncionesUI {
                 const autorizadoPor = prompt('Autorizado por:');
                 if (motivoMerma) {
                     return { materiales_merma: [], motivo: motivoMerma, autorizado_por: autorizadoPor };
+                }
+                break;
+            case 'reiniciar_servicio':
+                const fechaLiquidacion = prompt('Fecha de liquidación (YYYY-MM-DD):');
+                const nuevoCiclo = prompt('Nuevo ciclo de facturación:');
+                if (fechaLiquidacion) {
+                    return { fecha_liquidacion: fechaLiquidacion, nuevo_ciclo_facturacion: nuevoCiclo };
                 }
                 break;
         }

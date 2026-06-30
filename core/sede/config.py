@@ -3,7 +3,7 @@ from django.db.models import Q
 
 from core.models.models_generados import (
     Sedes, RucsGlobales, SedeRuc, Contratos, Planes, PlanAnexosTv, Personal, Tickets,
-    TicketTecnicosAsignados, MaterialesLiquidadosTicket, MaterialesConfiguracion, CatalogoTickets, Sectores,
+    MaterialesConfiguracion, CatalogoTickets, Sectores,
     Cajas
 )
 from core.auth.comun import checksession, senderror
@@ -36,6 +36,7 @@ def _catalogo_ticket_dict(t):
         'corte_temporal': getattr(t, 'corte_temporal', False),
         'morosidad': getattr(t, 'morosidad', False),
         'corte_definitivo': getattr(t, 'corte_definitivo', False),
+        'reiniciar_servicio': getattr(t, 'reiniciar_servicio', False),
         'instalacion_anexo': getattr(t, 'instalacion_anexo', False),
         'corte_anexo': getattr(t, 'corte_anexo', False),
     }
@@ -225,10 +226,15 @@ def config(request):
 
         tickets = []
         for t in tickets_qs:
-            tecnicos = list(
-                TicketTecnicosAsignados.objects.filter(ticket_orden=t)
-                .values_list('tecnico__nombre_completo', flat=True)
-            )
+            # Fetching assignee name (single technician from tecnico_asignado_id)
+            tecnicos = []
+            if t.tecnico_asignado_id:
+                from core.models.usuarios import Usuario
+                try:
+                    tecnico = Usuario.objects.get(pk=t.tecnico_asignado_id)
+                    tecnicos = [tecnico.nombre_completo]
+                except Usuario.DoesNotExist:
+                    pass
             tickets.append({
                 'id': t.id,
                 'tipo_ticket': t.tipo_ticket,

@@ -60,45 +60,46 @@ INSERT INTO
         modalidad,
         nombre_ticket,
         precio_base,
-        funciones_especiales
+        funciones_especiales,
+        activo
     )
 VALUES
     -- Incidencias Planta Interna Internet Remoto
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Internet lento', 0.00, DEFAULT),
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Revision de senal', 0.00, DEFAULT),
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Sin senal WiFi', 0.00, DEFAULT),
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Problemas puerto LAN', 0.00, DEFAULT),
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Navegacion lenta', 0.00, DEFAULT),
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Paginas web no cargan', 0.00, DEFAULT),
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Validacion de niveles', 0.00, DEFAULT),
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Reinicio logico', 0.00, DEFAULT),
-    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Configuracion WiFi', 0.00, DEFAULT),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Internet lento', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Revision de senal', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Sin senal WiFi', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Problemas puerto LAN', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Navegacion lenta', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Paginas web no cargan', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Validacion de niveles', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Reinicio logico', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_interna', 'internet', 'remoto', 'Configuracion WiFi', 0.00, DEFAULT, TRUE),
 
     -- Requerimientos Planta Interna Internet Remoto
-    ('requerimiento', 'planta_interna', 'internet', 'remoto', 'Cambio de contrasena WiFi', 0.00, DEFAULT),
-    ('requerimiento', 'planta_interna', 'internet', 'remoto', 'Apertura de puertos', 0.00, DEFAULT),
+    ('requerimiento', 'planta_interna', 'internet', 'remoto', 'Cambio de contrasena WiFi', 0.00, DEFAULT, TRUE),
+    ('requerimiento', 'planta_interna', 'internet', 'remoto', 'Apertura de puertos', 0.00, DEFAULT, TRUE),
 
     -- Requerimientos Planta Interna Todos Remoto
-    ('requerimiento', 'planta_interna', 'todos', 'remoto', 'Activacion logica', 0.00, DEFAULT),
-    ('requerimiento', 'planta_interna', 'todos', 'remoto', 'Configuracion remota', 0.00, DEFAULT),
+    ('requerimiento', 'planta_interna', 'todos', 'remoto', 'Activacion logica', 0.00, DEFAULT, TRUE),
+    ('requerimiento', 'planta_interna', 'todos', 'remoto', 'Configuracion remota', 0.00, DEFAULT, TRUE),
 
     -- Averias Planta Interna Internet Campo
-    ('averia', 'planta_interna', 'internet', 'campo', 'Cable drop danado', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Equipo sin conexion', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Equipo no enciende', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Fuente danada', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Puerto danado', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Cableado defectuoso', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Conector danado', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Wifi inestable', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Repetidor sin conexion', 0.00, DEFAULT),
-    ('averia', 'planta_interna', 'internet', 'campo', 'Instalacion defectuosa', 0.00, DEFAULT),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Cable drop danado', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Equipo sin conexion', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Equipo no enciende', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Fuente danada', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Puerto danado', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Cableado defectuoso', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Conector danado', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Wifi inestable', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Repetidor sin conexion', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_interna', 'internet', 'campo', 'Instalacion defectuosa', 0.00, DEFAULT, TRUE),
 
     -- Averias Planta Interna TV Campo
-    ('averia', 'planta_interna', 'tv', 'campo', 'Senal inestable TV', 0.00, DEFAULT),
+    ('averia', 'planta_interna', 'tv', 'campo', 'Senal inestable TV', 0.00, DEFAULT, TRUE),
 
     -- Averias Planta Interna Duo Campo
-    ('averia', 'planta_interna', 'duo', 'campo', 'RF averiado', 0.00, DEFAULT),
+    ('averia', 'planta_interna', 'duo', 'campo', 'RF averiado', 0.00, DEFAULT, TRUE),
 
     -- Requerimientos Planta Interna Internet Campo
     ('requerimiento', 'planta_interna', 'internet', 'campo', 'Cambio de equipo', 0.00, '{
@@ -116,8 +117,8 @@ VALUES
             "equipo_mantenido": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
-    ('requerimiento', 'planta_interna', 'internet', 'campo', 'Cableado Ethernet', 0.00, DEFAULT),
+    }'::jsonb, TRUE),
+    ('requerimiento', 'planta_interna', 'internet', 'campo', 'Cableado Ethernet', 0.00, DEFAULT, TRUE),
     ('requerimiento', 'planta_interna', 'internet', 'campo', 'Instalacion de repetidor', 0.00, '{
         "cobra_materiales": {
             "activado": true,
@@ -126,7 +127,7 @@ VALUES
             "monto_total": 0.00,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
 
     -- Requerimientos Planta Interna TV Campo
     ('requerimiento', 'planta_interna', 'tv', 'campo', 'Instalacion de anexo', 0.00, '{
@@ -136,7 +137,7 @@ VALUES
             "costo_mensual": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
 
     -- Requerimientos Planta Interna Todos Campo
     ('requerimiento', 'planta_interna', 'todos', 'campo', 'Traslado interno', 0.00, '{
@@ -146,7 +147,7 @@ VALUES
             "equipo_mantenido": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
     ('requerimiento', 'planta_interna', 'todos', 'campo', 'Traslado externo', 0.00, '{
         "instalacion": {
             "activado": true,
@@ -164,25 +165,25 @@ VALUES
             "coordenadas_nuevas": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
 
     -- Incidencias Planta Externa Todos Remoto
-    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Atenuacion alta', 0.00, DEFAULT),
-    ('incidencia', 'planta_externa', 'todos', 'remoto', 'NAP sin respuesta', 0.00, DEFAULT),
-    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Caida de enlace', 0.00, DEFAULT),
-    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Nodo fuera de linea', 0.00, DEFAULT),
-    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Saturacion de red', 0.00, DEFAULT),
-    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Monitoreo de fibra', 0.00, DEFAULT),
+    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Atenuacion alta', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_externa', 'todos', 'remoto', 'NAP sin respuesta', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Caida de enlace', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Nodo fuera de linea', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Saturacion de red', 0.00, DEFAULT, TRUE),
+    ('incidencia', 'planta_externa', 'todos', 'remoto', 'Monitoreo de fibra', 0.00, DEFAULT, TRUE),
 
     -- Averias Planta Externa Todos Campo
-    ('averia', 'planta_externa', 'todos', 'campo', 'Poste danado', 0.00, DEFAULT),
-    ('averia', 'planta_externa', 'todos', 'campo', 'Mufa danada', 0.00, DEFAULT),
-    ('averia', 'planta_externa', 'todos', 'campo', 'NAP averiada', 0.00, DEFAULT),
-    ('averia', 'planta_externa', 'todos', 'campo', 'Corte de fibra', 0.00, DEFAULT),
-    ('averia', 'planta_externa', 'todos', 'campo', 'Fibra troncal danada', 0.00, DEFAULT),
-    ('averia', 'planta_externa', 'todos', 'campo', 'Splitter averiado', 0.00, DEFAULT),
-    ('averia', 'planta_externa', 'todos', 'campo', 'Red aerea caida', 0.00, DEFAULT),
-    ('averia', 'planta_externa', 'todos', 'campo', 'Caja terminal danada', 0.00, DEFAULT),
+    ('averia', 'planta_externa', 'todos', 'campo', 'Poste danado', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_externa', 'todos', 'campo', 'Mufa danada', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_externa', 'todos', 'campo', 'NAP averiada', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_externa', 'todos', 'campo', 'Corte de fibra', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_externa', 'todos', 'campo', 'Fibra troncal danada', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_externa', 'todos', 'campo', 'Splitter averiado', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_externa', 'todos', 'campo', 'Red aerea caida', 0.00, DEFAULT, TRUE),
+    ('averia', 'planta_externa', 'todos', 'campo', 'Caja terminal danada', 0.00, DEFAULT, TRUE),
 
     -- Requerimientos Planta Externa Todos Campo
     ('requerimiento', 'planta_externa', 'todos', 'campo', 'Expansion de red', 0.00, '{
@@ -194,7 +195,7 @@ VALUES
             "coordenadas_nuevas": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
     ('requerimiento', 'planta_externa', 'todos', 'campo', 'Instalacion de NAP', 0.00, '{
         "editar_mapa": {
             "activado": true,
@@ -211,8 +212,8 @@ VALUES
             "suministro_nuevo": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
-    ('requerimiento', 'planta_externa', 'todos', 'campo', 'Cambio de poste', 0.00, DEFAULT),
+    }'::jsonb, TRUE),
+    ('requerimiento', 'planta_externa', 'todos', 'campo', 'Cambio de poste', 0.00, DEFAULT, TRUE),
     ('requerimiento', 'planta_externa', 'todos', 'campo', 'Tendido de fibra', 0.00, '{
         "genera_merma": {
             "activado": true,
@@ -222,7 +223,7 @@ VALUES
             "autorizado_por": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
     ('requerimiento', 'planta_externa', 'todos', 'campo', 'Reubicacion de red', 0.00, '{
         "editar_mapa": {
             "activado": true,
@@ -232,20 +233,20 @@ VALUES
             "coordenadas_nuevas": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
-    ('requerimiento', 'planta_externa', 'todos', 'campo', 'Instalacion de mufa', 0.00, DEFAULT),
+    }'::jsonb, TRUE),
+    ('requerimiento', 'planta_externa', 'todos', 'campo', 'Instalacion de mufa', 0.00, DEFAULT, TRUE),
 
     -- Pirateria Planta Externa Todos Campo
-    ('pirateria', 'planta_externa', 'todos', 'campo', 'Conexion clandestina', 0.00, DEFAULT),
-    ('pirateria', 'planta_externa', 'todos', 'campo', 'Derivacion ilegal', 0.00, DEFAULT),
-    ('pirateria', 'planta_externa', 'todos', 'campo', 'Manipulacion de NAP', 0.00, DEFAULT),
-    ('pirateria', 'planta_externa', 'todos', 'campo', 'Fibra ilegal conectada', 0.00, DEFAULT),
+    ('pirateria', 'planta_externa', 'todos', 'campo', 'Conexion clandestina', 0.00, DEFAULT, TRUE),
+    ('pirateria', 'planta_externa', 'todos', 'campo', 'Derivacion ilegal', 0.00, DEFAULT, TRUE),
+    ('pirateria', 'planta_externa', 'todos', 'campo', 'Manipulacion de NAP', 0.00, DEFAULT, TRUE),
+    ('pirateria', 'planta_externa', 'todos', 'campo', 'Fibra ilegal conectada', 0.00, DEFAULT, TRUE),
 
     -- Otros Planta Externa Todos Campo
-    ('otros', 'planta_externa', 'todos', 'campo', 'Seguimiento de infraestructura', 0.00, DEFAULT),
-    ('otros', 'planta_externa', 'todos', 'campo', 'Validacion troncal', 0.00, DEFAULT),
-    ('otros', 'planta_externa', 'todos', 'campo', 'Inspeccion de red', 0.00, DEFAULT),
-    ('otros', 'planta_externa', 'todos', 'campo', 'Auditoria tecnica', 0.00, DEFAULT),
+    ('otros', 'planta_externa', 'todos', 'campo', 'Seguimiento de infraestructura', 0.00, DEFAULT, TRUE),
+    ('otros', 'planta_externa', 'todos', 'campo', 'Validacion troncal', 0.00, DEFAULT, TRUE),
+    ('otros', 'planta_externa', 'todos', 'campo', 'Inspeccion de red', 0.00, DEFAULT, TRUE),
+    ('otros', 'planta_externa', 'todos', 'campo', 'Auditoria tecnica', 0.00, DEFAULT, TRUE),
     ('otros', 'planta_externa', 'todos', 'campo', 'Retiro de Materiales', 0.00, '{
         "genera_merma": {
             "activado": true,
@@ -255,7 +256,7 @@ VALUES
             "autorizado_por": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
     ('otros', 'planta_externa', 'todos', 'campo', 'Retiro Logico', 0.00, '{
         "corte_definitivo": {
             "activado": true,
@@ -263,7 +264,7 @@ VALUES
             "motivo": "retiro_logico",
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
 
     -- Requerimientos Planta Interna Todos Remoto
     ('requerimiento', 'planta_interna', 'todos', 'remoto', 'Migracion de plan', 0.00, '{
@@ -276,7 +277,7 @@ VALUES
             "fecha_activacion_nuevo": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
 
     -- Instalacion Planta Interna Todos Campo
     ('instalacion', 'planta_interna', 'todos', 'campo', 'Instalacion servicio', 50.00, '{
@@ -295,7 +296,7 @@ VALUES
             "suministro_nuevo": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
 
     -- Requerimiento Planta Interna Todos Campo
     ('requerimiento', 'planta_interna', 'todos', 'campo', 'Corte de anexo', 0.00, '{
@@ -304,7 +305,7 @@ VALUES
             "fecha_activacion": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
 
     -- Instalacion Planta Interna TV Campo
     ('instalacion', 'planta_interna', 'tv', 'campo', 'Instalacion de anexo', 30.00, '{
@@ -321,7 +322,7 @@ VALUES
             "monto_total": 0.00,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
 
     -- Cortes Planta Interna Todos Remoto
     ('cortes', 'planta_interna', 'todos', 'remoto', 'Morosidad', 0.00, '{
@@ -330,7 +331,7 @@ VALUES
             "fecha_activacion": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
     ('cortes', 'planta_interna', 'todos', 'remoto', 'Definitivo', 0.00, '{
         "corte_definitivo": {
             "activado": true,
@@ -338,7 +339,7 @@ VALUES
             "motivo": null,
             "estado": "pendiente"
         }
-    }'::jsonb),
+    }'::jsonb, TRUE),
     ('cortes', 'planta_interna', 'todos', 'remoto', 'Temporal', 0.00, '{
         "corte_temporal": {
             "activado": true,
@@ -346,5 +347,16 @@ VALUES
             "motivo": null,
             "estado": "pendiente"
         }
-    }'::jsonb)
+    }'::jsonb, TRUE),
+
+    -- Reconexion Planta Interna Todos Campo
+    ('reconexion', 'planta_interna', 'todos', 'campo', 'Servicio', 0.00, '{
+        "reiniciar_servicio": {
+            "activado": true,
+            "fecha_activacion": null,
+            "fecha_liquidacion": null,
+            "nuevo_ciclo_facturacion": null,
+            "estado": "pendiente"
+        }
+    }'::jsonb, TRUE)
 ON CONFLICT DO NOTHING;

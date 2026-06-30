@@ -49,3 +49,6 @@ Thumbs.db
 # Backup
 backup/
 *.bak
+
+# Django sessions
+sessions/

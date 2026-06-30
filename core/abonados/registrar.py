@@ -36,7 +36,7 @@ def registrar(request):
             return senderror('No puede registrar en otra sede', status=403)
 
     hab = ctx.get('habilidades') or {}
-    hg = hab.get('habilidades_globales', {})
+    hg = hab.get('habilidades_globales') or hab
     tickets_cobro = hg.get('tickets_cobro', {})
     deudas_antiguas = hg.get('deudas_antiguas', {})
     planes_mensuales = hg.get('planes_mensuales', {})
@@ -87,13 +87,27 @@ def registrar(request):
     if descuento_plan > pct_max_plan:
         return senderror(f'Descuento de plan excede máximo permitido ({pct_max_plan}%)', status=403)
     
-    # Validar meses gratis
-    meses_gratis = int(body.get('meses_gratis') or 0)
+    # Validar descuento de aplicativo mensual (mismas reglas que el plan)
+    descuento_apps = _decimal(body.get('pct_descuento_apps') or 0)
+    if descuento_apps > 0 and pct_max_plan == 0:
+        return senderror('Sin habilidad para aplicar descuento en aplicativos', status=403)
+    if descuento_apps > pct_max_plan:
+        return senderror(f'Descuento de aplicativo excede máximo permitido ({pct_max_plan}%)', status=403)
+    
+    # Validar meses de descuento
+    meses_descuento = int(body.get('meses_descuento') or 0)
     max_meses = int(planes_mensuales.get('meses_maximos') or 0)
-    if meses_gratis > 0 and max_meses == 0:
-        return senderror('Sin habilidad para otorgar meses gratis', status=403)
-    if meses_gratis > max_meses:
-        return senderror(f'Meses gratis exceden máximo permitido ({max_meses})', status=403)
+    if meses_descuento > 0 and max_meses == 0:
+        return senderror('Sin habilidad para otorgar meses de descuento', status=403)
+    if meses_descuento > max_meses:
+        return senderror(f'Meses de descuento exceden máximo permitido ({max_meses})', status=403)
+    
+    # Validar meses de descuento de aplicativos
+    meses_descuento_apps = int(body.get('meses_descuento_apps') or 0)
+    if meses_descuento_apps > 0 and max_meses == 0:
+        return senderror('Sin habilidad para otorgar meses de descuento en aplicativos', status=403)
+    if meses_descuento_apps > max_meses:
+        return senderror(f'Meses de descuento de aplicativos exceden máximo permitido ({max_meses})', status=403)
     
     # Validar autorización de supervisor para descuentos altos
     requiere_autorizacion = planes_mensuales.get('requiere_autorizacion_supervisor', False)
@@ -143,16 +157,20 @@ def registrar(request):
             
             # Guardar detalles de la oferta para aprobación
             servicio.control_operativo_json['oferta'] = {
-                'estado': 'pendiente_aprobacion',
-                'plan_id': body.get('plan_id'),
-                'plan_nombre': body.get('plan_nombre'),
-                'descuento_plan': float(body.get('descuento_plan') or 0),
-                'meses_gratis': int(body.get('meses_gratis') or 0),
-                'monto_instalacion': float(body.get('monto_instalacion') or 0),
-                'descuento_instalacion': float(body.get('pct_descuento_instalacion') or 0),
-                'vendedor_id': ctx.get('personal_id'),
-                'fecha_registro': timezone.now().isoformat()
-            }
+                    'estado': 'pendiente_aprobacion',
+                    'plan_id': body.get('plan_id'),
+                    'plan_nombre': body.get('plan_nombre'),
+                    'descuento_plan': float(body.get('descuento_plan') or body.get('pct_descuento_plan') or 0),
+                    'meses_descuento': int(body.get('meses_descuento') or 0),
+                    'descuento_apps': float(body.get('pct_descuento_apps') or 0),
+                    'meses_descuento_apps': int(body.get('meses_descuento_apps') or 0),
+                    'monto_instalacion': float(body.get('monto_instalacion') or 0),
+                    'descuento_instalacion': float(body.get('pct_descuento_instalacion') or 0),
+                    'cuotas_instalacion': int(body.get('cuotas_instalacion') or 1),
+                    'notas_beneficios': (body.get('notas_beneficios') or '').strip(),
+                    'vendedor_id': ctx.get('personal_id'),
+                    'fecha_registro': timezone.now().isoformat()
+                }
             servicio.save(update_fields=['control_operativo_json'])
             
     except ValueError as exc:
@@ -186,13 +204,27 @@ def registrar(request):
             servicio.save(update_fields=['deuda_acumulada'])
             
             from core.sunat.comprobantes import sistema_emitir_comprobante
+            
+            # Build detailed description for invoice
+            items_descripcion_parts = ['Registro nuevo abonado']
+            if evaluacion.get('plan_nombre'):
+                items_descripcion_parts.append(f"Plan: {evaluacion['plan_nombre']}")
+            if evaluacion.get('costo_apps_mensual', 0) > 0:
+                items_descripcion_parts.append(f"Aplicaciones: {', '.join(evaluacion.get('apps_nombres', []))}")
+            if evaluacion.get('costo_anexos', 0) > 0:
+                items_descripcion_parts.append(f"Anexos adicionales: {evaluacion.get('num_anexos', 0)}")
+            if evaluacion.get('costo_instalacion', 0) > 0:
+                items_descripcion_parts.append("Instalación")
+            
+            items_descripcion = ' - '.join(items_descripcion_parts)
+            
             comprobante = sistema_emitir_comprobante(
                 cliente_id=resultado['cliente_id'],
                 ruc_emisor_id=int(body['ruc_emisor_id']),
                 sede_id=int(body.get('sede_id') or ctx.get('sede_id')),
                 tipo_comprobante=body.get('tipo_comprobante') or evaluacion.get('tipo_comprobante_sugerido'),
                 monto_total=total_cobrar,
-                items_descripcion='Registro nuevo abonado - Cobro fin de mes',
+                items_descripcion=items_descripcion,
             )
             
             resultado['deuda_generada'] = {

@@ -5,8 +5,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = document.getElementById('abonadosApp');
     if (!app) return;
 
-    document.getElementById('btnNuevoAbonado')?.addEventListener('click', () => {
-        window.AbonadosRegistro?.open({});
+    const btnNuevoAbonado = document.getElementById('btnNuevoAbonado');
+    console.log('btnNuevoAbonado found:', !!btnNuevoAbonado);
+    console.log('AbonadosRegistro available:', !!window.AbonadosRegistro);
+    
+    btnNuevoAbonado?.addEventListener('click', () => {
+        console.log('btnNuevoAbonado clicked');
+        console.log('AbonadosRegistro:', window.AbonadosRegistro);
+        if (!window.AbonadosRegistro) {
+            console.error('AbonadosRegistro no está definido');
+            alert('Error: El sistema de registro no está cargado. Recargue la página.');
+            return;
+        }
+        window.AbonadosRegistro.open({});
     });
 
     document.querySelectorAll('.btn-agregar-api').forEach(btn => {

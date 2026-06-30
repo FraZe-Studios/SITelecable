@@ -79,6 +79,10 @@ def sistema_planes_por_sede(sede_id):
             'costo_plan': float(p.costo_mensual),
             'velocidad_mbps': (p.caracteristicas_tecnicas_json or {}).get('caracteristicas_base', {}).get('velocidad_mbps', 0) or (p.velocidad_mbps or 0),
             'configuracion_fecha_pago': 'FECHA_INSTALACION' if (p.dia_vencimiento or '').lower() == 'fecha_instalacion' else 'FIN_DE_MES',
+            'dias_anticipacion_descuento': p.dias_anticipacion_descuento,
+            'monto_descuento_pago_anticipado': float(p.monto_descuento_pago_anticipado),
+            'dias_gracia': p.dias_gracia,
+            'caracteristicas_tecnicas_json': p.caracteristicas_tecnicas_json,
         }
         for p in planes
     ]

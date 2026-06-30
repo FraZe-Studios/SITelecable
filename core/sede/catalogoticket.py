@@ -50,21 +50,13 @@ def catalogoticket(request):
         
     try:
         body = json.loads(request.body)
+        print(f"DEBUG - Body recibido: {body}")
         sede_id = _require_sede_id(body)
         ticket_id = body.get('ticket_id')
+        print(f"DEBUG - ticket_id: {ticket_id}")
         es_universal = bool(body.get('es_universal', False))
         nombre_clean = body['nombre'].strip()
         
-        duplicado_qs = CatalogoTickets.objects.filter(nombre_ticket__iexact=nombre_clean)
-        if ticket_id:
-            duplicado_qs = duplicado_qs.exclude(pk=int(ticket_id))
-            t = CatalogoTickets.objects.get(pk=int(ticket_id))
-        else:
-            t = CatalogoTickets()
-            
-        if duplicado_qs.exists():
-            return senderror(f'Ya existe un ticket con el nombre "{nombre_clean}"', status=400)
-
         # Obtener valores válidos de ENUMs desde la base de datos
         categorias_validas = get_enum_values('categoria_ticket')
         areas_validas = get_enum_values('area_ticket')
@@ -74,7 +66,23 @@ def catalogoticket(request):
         # Validar y asignar categoría (insensible a mayúsculas/minúsculas)
         cat_val = body.get('categoria', '').strip()
         matched_cat = next((v for v in categorias_validas if v.lower() == cat_val.lower()), None)
-        t.categoria = matched_cat if matched_cat else (categorias_validas[0] if categorias_validas else 'incidencia')
+        categoria_val = matched_cat if matched_cat else (categorias_validas[0] if categorias_validas else 'incidencia')
+
+        duplicado_qs = CatalogoTickets.objects.filter(
+            nombre_ticket__iexact=nombre_clean,
+            categoria__iexact=categoria_val
+        )
+        if ticket_id:
+            duplicado_qs = duplicado_qs.exclude(pk=int(ticket_id))
+            t = CatalogoTickets.objects.get(pk=int(ticket_id))
+        else:
+            t = CatalogoTickets()
+            
+        # Check for duplicate names in the same category (excluding current ticket when editing)
+        if duplicado_qs.exists():
+            return senderror(f'Ya existe otro ticket con el nombre "{nombre_clean}" en la categoría "{categoria_val}"', status=400)
+
+        t.categoria = categoria_val
 
         # Validar y asignar área (insensible a mayúsculas/minúsculas)
         area_val = body.get('area', '').strip()
@@ -108,6 +116,7 @@ def catalogoticket(request):
         t.corte_temporal = bool(body.get('corte_temporal', False))
         t.morosidad = bool(body.get('morosidad', False))
         t.corte_definitivo = bool(body.get('corte_definitivo', False))
+        t.reiniciar_servicio = bool(body.get('reiniciar_servicio', False))
         t.instalacion_anexo = bool(body.get('instalacion_anexo', False))
         t.corte_anexo = bool(body.get('corte_anexo', False))
         t.save()
@@ -135,6 +144,7 @@ def catalogoticket(request):
             'corte_temporal': t.corte_temporal,
             'morosidad': t.morosidad,
             'corte_definitivo': t.corte_definitivo,
+            'reiniciar_servicio': t.reiniciar_servicio,
             'instalacion_anexo': t.instalacion_anexo,
             'corte_anexo': t.corte_anexo,
             'es_universal': t.es_universal,

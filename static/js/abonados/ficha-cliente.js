@@ -84,6 +84,97 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Manejar botón de ver oferta
+    document.querySelectorAll('.btn-ver-oferta').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const suscripcionId = btn.dataset.suscripcion;
+            if (!suscripcionId) return;
+            
+            const modal = document.getElementById(`modal-oferta-${suscripcionId}`);
+            if (!modal) return;
+            
+            modal.style.display = 'flex';
+            
+            // Load offer details
+            try {
+                const response = await fetch(`/api/abonados/obtener-oferta/?suscripcion_id=${suscripcionId}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const oferta = data.data.oferta;
+                    const detallesDiv = document.getElementById(`oferta-detalles-${suscripcionId}`);
+                    
+                    if (oferta && detallesDiv) {
+                        detallesDiv.innerHTML = `
+                            <div style="background:var(--bg-surface-active); padding:1rem; border-radius:var(--radius-sm); margin-bottom:1rem;">
+                                <h4 style="margin:0 0 0.5rem 0; color:var(--text-primary);">Información del Plan</h4>
+                                <p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Plan:</strong> ${oferta.plan_nombre || 'N/A'}</p>
+                                <p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Descuento:</strong> ${oferta.descuento_plan || 0}%</p>
+                                <p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Meses de Descuento:</strong> ${oferta.meses_descuento || 0}</p>
+                                <p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Monto Instalación:</strong> S/ ${oferta.monto_instalacion || 0}</p>
+                                <p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Descuento Instalación:</strong> ${oferta.descuento_instalacion || 0}%</p>
+                            </div>
+                            <div style="background:var(--bg-surface-active); padding:1rem; border-radius:var(--radius-sm); margin-bottom:1rem;">
+                                <h4 style="margin:0 0 0.5rem 0; color:var(--text-primary);">Información del Vendedor</h4>
+                                <p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>ID Vendedor:</strong> ${oferta.vendedor_id || 'N/A'}</p>
+                                <p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Fecha Registro:</strong> ${oferta.fecha_registro || 'N/A'}</p>
+                            </div>
+                            <div style="background:var(--bg-surface-active); padding:1rem; border-radius:var(--radius-sm);">
+                                <h4 style="margin:0 0 0.5rem 0; color:var(--text-primary);">Estado</h4>
+                                <p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Estado:</strong> <span style="color:${oferta.estado === 'pendiente_aprobacion' ? '#f59e0b' : '#22c55e'}; font-weight:bold;">${oferta.estado || 'N/A'}</span></p>
+                                ${oferta.aprobado_por_nombre ? `<p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Aprobado por:</strong> ${oferta.aprobado_por_nombre}</p>` : ''}
+                                ${oferta.fecha_aprobacion ? `<p style="margin:0.25rem 0; color:var(--text-secondary);"><strong>Fecha Aprobación:</strong> ${oferta.fecha_aprobacion}</p>` : ''}
+                            </div>
+                        `;
+                    }
+                } else {
+                    document.getElementById(`oferta-detalles-${suscripcionId}`).innerHTML = 
+                        `<p style="color:var(--error-color);">Error al cargar detalles: ${data.message || 'Error desconocido'}</p>`;
+                }
+            } catch (error) {
+                console.error('Error al cargar oferta:', error);
+                document.getElementById(`oferta-detalles-${suscripcionId}`).innerHTML = 
+                    '<p style="color:var(--error-color);">Error de conexión al cargar detalles</p>';
+            }
+        });
+    });
+
+    // Manejar botón de aprobar oferta desde modal
+    document.querySelectorAll('.btn-aprobar-oferta-modal').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const suscripcionId = btn.dataset.suscripcion;
+            if (!suscripcionId) return;
+            
+            if (!confirm('¿Está seguro de aprobar esta oferta? Esto activará el servicio del cliente.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/abonados/aprobar-oferta/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        suscripcion_id: suscripcionId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    alert('Oferta aprobada exitosamente');
+                    window.location.reload();
+                } else {
+                    alert('Error al aprobar oferta: ' + (data.message || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Error al aprobar oferta:', error);
+                alert('Error al aprobar oferta');
+            }
+        });
+    });
+
     // Desplazamiento y resaltado del ticket objetivo si está presente en la URL
     const jump = new URLSearchParams(window.location.search).get('jump') || window.location.hash;
     if (jump) {
@@ -210,6 +301,47 @@ document.addEventListener('DOMContentLoaded', () => {
         const costoPlan = parseFloat(form.dataset.costoPlan || 0);
         togglePagoLibreInputs();
 
+        // Get current paid period from the UI
+        const getPagadoHasta = () => {
+            const periodoInfo = form.querySelector('[style*="rgba(59,130,246,0.1)"]');
+            if (periodoInfo) {
+                const texto = periodoInfo.textContent;
+                const match = texto.match(/Pagado hasta: (\d{2}\/\d{2}\/\d{4})/);
+                if (match) {
+                    const [dia, mes, anio] = match[1].split('/');
+                    return new Date(anio, mes - 1, dia);
+                }
+            }
+            return new Date(); // Default to today if no payment found
+        };
+
+        // Calculate month names based on number of months
+        const calcularNombresMeses = (numMeses, fechaInicio) => {
+            const meses = [];
+            const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const fecha = new Date(fechaInicio);
+            
+            for (let i = 0; i < numMeses; i++) {
+                fecha.setMonth(fecha.getMonth() + 1);
+                meses.push(nombresMeses[fecha.getMonth()]);
+            }
+            return meses.join(', ');
+        };
+
+        // Calculate date range (from - to)
+        const calcularRangoFechas = (numMeses, fechaInicio) => {
+            const fechaDesde = new Date(fechaInicio);
+            fechaDesde.setDate(fechaDesde.getDate() + 1); // Start from next day
+            
+            const fechaHasta = new Date(fechaDesde);
+            fechaHasta.setMonth(fechaHasta.getMonth() + numMeses);
+            fechaHasta.setDate(fechaHasta.getDate() - 1); // End at last day of last month
+            
+            const formatDate = (d) => d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            return { desde: formatDate(fechaDesde), hasta: formatDate(fechaHasta) };
+        };
+
         const updateConcepto = () => {
             const meses = parseInt(pagoLibreMeses?.value) || 0;
             const detalleMeses = pagoLibreMesesDetalle?.value.trim();
@@ -228,35 +360,38 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateTotal();
         };
 
-            pagoLibreMeses.addEventListener('input', () => {
-                const meses = parseInt(pagoLibreMeses.value) || 0;
-                if (meses > 0 && costoPlan > 0) {
-                    const totalMonto = (costoPlan * meses).toFixed(2);
-                    if (pagoLibreMonto) {
-                        pagoLibreMonto.value = totalMonto;
-                    }
+        const updateMesesYFechas = () => {
+            const meses = parseInt(pagoLibreMeses?.value) || 0;
+            const fechaInicio = getPagadoHasta();
+            
+            // Auto-fill month names
+            if (meses > 0 && pagoLibreMesesDetalle) {
+                const nombres = calcularNombresMeses(meses, fechaInicio);
+                pagoLibreMesesDetalle.value = nombres;
+            }
+            
+            // Calculate and display date range
+            if (meses > 0) {
+                const rango = calcularRangoFechas(meses, fechaInicio);
+                const fechaDesdeEl = form.querySelector('#pago-fecha-desde');
+                const fechaHastaEl = form.querySelector('#pago-fecha-hasta');
+                if (fechaDesdeEl) fechaDesdeEl.textContent = rango.desde;
+                if (fechaHastaEl) fechaHastaEl.textContent = rango.hasta;
+            }
+            
+            updateConcepto();
+        };
+
+        pagoLibreMeses.addEventListener('input', () => {
+            const meses = parseInt(pagoLibreMeses.value) || 0;
+            if (meses > 0 && costoPlan > 0) {
+                const totalMonto = (costoPlan * meses).toFixed(2);
+                if (pagoLibreMonto) {
+                    pagoLibreMonto.value = totalMonto;
                 }
-                const pagoLibreComprobante = form.querySelector('#pago-libre-comprobante');
-                if (pagoLibreComprobante) {
-                    const notaVentaOpt = pagoLibreComprobante.querySelector('option[value="NOTA_VENTA"]');
-                    if (meses > 0) {
-                        if (notaVentaOpt) {
-                            notaVentaOpt.disabled = true;
-                            notaVentaOpt.style.display = 'none';
-                        }
-                        const rucText = document.getElementById('field-ruc')?.textContent?.trim() || '';
-                        const is11DigitRuc = /^\d{11}$/.test(rucText);
-                        pagoLibreComprobante.value = is11DigitRuc ? 'FACTURA' : 'BOLETA';
-                    } else {
-                        if (notaVentaOpt) {
-                            notaVentaOpt.disabled = false;
-                            notaVentaOpt.style.display = 'block';
-                        }
-                        pagoLibreComprobante.value = 'NOTA_VENTA';
-                    }
-                }
-                updateConcepto();
-            });
+            }
+            updateMesesYFechas();
+        });
 
         if (pagoLibreMesesDetalle) {
             pagoLibreMesesDetalle.addEventListener('input', updateConcepto);
@@ -267,6 +402,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Check if service is installed before allowing payment
+            const fechaInstalacionEl = document.querySelector('[id^="svc-field-fecha-instalacion-"]');
+            const fechaInstalacionRaw = fechaInstalacionEl?.dataset?.rawValue;
+            const estadoServicioEl = document.querySelector('.ab-status');
+            const estadoServicio = estadoServicioEl?.textContent?.trim().toLowerCase();
+
+            // Check for pending installation tickets
+            const servicioId = form.dataset.suscripcion;
+            const ticketsDataScript = document.getElementById(`tickets-data-${servicioId}`);
+            let tieneTicketInstalacionPendiente = false;
+            
+            if (ticketsDataScript) {
+                try {
+                    const tickets = JSON.parse(ticketsDataScript.textContent);
+                    tieneTicketInstalacionPendiente = tickets.some(t => 
+                        (t.categoria === 'INSTALACION' || t.area === 'planta_externa') &&
+                        t.estado_ticket !== 'LIQUIDADO' && 
+                        t.estado_ticket !== 'COMPLETADO' &&
+                        t.estado_ticket !== 'CANCELADO'
+                    );
+                } catch (err) {
+                    console.error('Error parsing tickets data:', err);
+                }
+            }
+
+            // If service not installed and has pending installation ticket, require liquidation first
+            if ((!fechaInstalacionRaw || fechaInstalacionRaw === '') && tieneTicketInstalacionPendiente) {
+                const confirmar = confirm(
+                    'El servicio aún no está instalado. Debe liquidar la orden de instalación antes de realizar el pago.\n\n' +
+                    '¿Desea ir a liquidar la orden de instalación ahora?'
+                );
+                if (confirmar) {
+                    // Switch to campo tab
+                    const tabBtn = document.querySelector(`[data-tab-target="svc-campo-${servicioId}"]`);
+                    if (tabBtn) tabBtn.click();
+                }
+                return;
+            }
 
             // Collect selected payments
             const pagos = [];

@@ -8,6 +8,6 @@ from .suscripciones import ServiciosAbonados
 from .facturacion import CajaMovimientos, FacturacionPagos, Cajas
 from .tareas import TareasLlamadas
 from .cache import CacheDni, CacheRuc, CacheSuministro
-from .tickets import TicketsOrdenes, TicketTecnicosAsignados, TicketConsumoMateriales, TicketsPlantillas
+from .tickets import TicketsOrdenes, TicketsPlantillas
 from .compat import *
 from .auditoria import AuditoriaCambios
