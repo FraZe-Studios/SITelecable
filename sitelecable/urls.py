@@ -35,7 +35,9 @@ from core.abonados import (
     subirdocumento, generardeuda, editardeuda, eliminardeuda, compromisopago,
     actualizarcliente, actualizarservicio, infraestructurared, registrarmultipago,
     procesarfacturacion, registrarpago, consultardni, consultarruc, buscardocumento,
-    buscartelecable, detalletelecable, deudastelecable, aprobaroferta, obteneroferta
+    ticketsliquidados,
+    buscartelecable, detalletelecable, deudastelecable, aprobaroferta, obteneroferta,
+    financiardeuda, materialesdisponibles, gestionaranexo
 )
 
 # Import tickets views
@@ -153,7 +155,11 @@ urlpatterns = [
     path('api/abonados/aprobar-oferta/', aprobaroferta.aprobar_oferta, name='api_abonados_aprobar_oferta'),
     path('api/abonados/obtener-oferta/', obteneroferta.obtener_oferta, name='api_abonados_obtener_oferta'),
     path('api/abonados/derivar-ticket/', derivarticket.derivarticket, name='api_abonados_derivar_ticket'),
+    path('api/abonados/servicio/<str:servicio_id>/tickets-liquidados/', ticketsliquidados.tickets_liquidados, name='api_abonados_servicio_tickets_liquidados'),
     path('api/cliente/ticket/print/', print_ticket_cliente.imprimir, name='api_cliente_ticket_print'),
+    path('api/abonados/financiar-deuda/', financiardeuda.financiardeuda, name='api_abonados_financiar_deuda'),
+    path('api/abonados/materiales-disponibles/', materialesdisponibles.materialesdisponibles, name='api_abonados_materiales_disponibles'),
+    path('api/abonados/gestionar-anexo/', gestionaranexo.gestionaranexo, name='api_abonados_gestionar_anexo'),
 
     # Tareas de Llamadas
     path('tareas/', tareas_listar.listar, name='tareas_list'),

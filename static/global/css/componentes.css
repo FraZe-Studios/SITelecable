@@ -237,3 +237,110 @@
         max-width: none;
     }
 }
+
+/* -----------------------------------------------------------------------------
+   3. CUADRO DE CONFIRMACIÓN PERSONALIZADO (CUSTOM CONFIRM DIALOG)
+   ----------------------------------------------------------------------------- */
+.confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: confirm-fade-in 0.25s ease-out forwards;
+}
+
+.confirm-modal {
+    background-color: var(--bg-surface);
+    border: var(--border-thin) solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: 1.5rem;
+    max-width: 420px;
+    width: 90%;
+    transform: scale(0.9);
+    opacity: 0;
+    animation: confirm-zoom-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.confirm-overlay.confirm-fade-out {
+    animation: confirm-fade-out 0.2s ease-in forwards;
+}
+
+.confirm-overlay.confirm-fade-out .confirm-modal {
+    animation: confirm-zoom-out 0.2s ease-in forwards;
+}
+
+@keyframes confirm-fade-in {
+    to { background-color: rgba(0, 0, 0, 0.55); }
+}
+
+@keyframes confirm-fade-out {
+    to { opacity: 0; }
+}
+
+@keyframes confirm-zoom-in {
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes confirm-zoom-out {
+    to {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+}
+
+.confirm-content {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.confirm-btn {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: var(--border-thin) solid transparent;
+}
+
+.confirm-btn-cancel {
+    background-color: var(--bg-surface-active);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.confirm-btn-cancel:hover {
+    background-color: var(--bg-surface-hover);
+    color: var(--text-primary);
+}
+
+.confirm-btn-ok {
+    background-color: var(--primary);
+    color: #ffffff;
+}
+
+.confirm-btn-ok:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2);
+}
+

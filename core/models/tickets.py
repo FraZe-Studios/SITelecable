@@ -43,6 +43,7 @@ class TicketsOrdenes(models.Model):
     # Matrices modulares JSONB indexadas por GIN en la base de datos
     configuracion_reglas = models.JSONField(default=dict, blank=True)
     funciones_especiales = models.JSONField(default=dict, blank=True)
+    materiales_consumidos_json = models.JSONField(default=list, blank=True)
     
     empleado_atc_generador = models.ForeignKey('Usuario', models.DO_NOTHING, blank=True, null=True)
     tecnico_asignado_id = models.IntegerField(blank=True, null=True)

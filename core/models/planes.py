@@ -196,6 +196,34 @@ class Planes(SoftDeleteModel):
         self.extra_data['costo_conexion_tv_adicional'] = float(value) if value is not None else 0.0
         self.save_extra_data()
 
+    @property
+    def precio_por_anexo(self):
+        """
+        Precio adicional por cada anexo cobrable (los que superan el gratis de registro).
+        Guardado en caracteristicas_tecnicas_json['precio_por_anexo'] — sin DDL.
+        """
+        from decimal import Decimal
+        caracteristicas = self.caracteristicas_tecnicas_json or {}
+        return Decimal(str(caracteristicas.get('precio_por_anexo') or 0))
+
+    @precio_por_anexo.setter
+    def precio_por_anexo(self, value):
+        caracteristicas = self.caracteristicas_tecnicas_json or {}
+        caracteristicas['precio_por_anexo'] = float(value or 0)
+        self.caracteristicas_tecnicas_json = caracteristicas
+
+    @property
+    def anexos_gratis(self):
+        """Número de anexos gratuitos incluidos en el plan (default 1 — el de registro)."""
+        caracteristicas = self.caracteristicas_tecnicas_json or {}
+        return int(caracteristicas.get('anexos_gratis') or 1)
+
+    @anexos_gratis.setter
+    def anexos_gratis(self, value):
+        caracteristicas = self.caracteristicas_tecnicas_json or {}
+        caracteristicas['anexos_gratis'] = int(value or 1)
+        self.caracteristicas_tecnicas_json = caracteristicas
+
     # ============================================================================
     # MÉTODOS DE VALIDACIÓN DE CARACTERÍSTICAS TÉCNICAS
     # ============================================================================

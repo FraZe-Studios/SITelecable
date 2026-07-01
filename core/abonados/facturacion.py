@@ -7,9 +7,107 @@ from django.utils import timezone
 from core.models.models_generados import ServiciosAbonados, FacturacionPagos, TareasLlamadas
 from core.models.usuarios import Usuario
 
+
+def _descuento_plan_para_mes(control, mes_str):
+    """
+    Devuelve el porcentaje de descuento (Decimal 0-100) que aplica al plan
+    en el mes indicado (formato 'YYYY-MM').
+    
+    Prioridad:
+    1. control['oferta'] con mes_inicio/mes_fin y estado 'aprobada'
+    2. control['descuentos']['plan'] con fecha_inicio/fecha_fin (legacy)
+    3. control['descuento_permanente'] (legacy sin fechas)
+    Devuelve Decimal('0') si no hay descuento activo.
+    """
+    if not isinstance(control, dict):
+        return Decimal('0')
+
+    oferta = control.get('oferta', {})
+    if isinstance(oferta, dict) and oferta.get('estado') == 'aprobada':
+        mes_inicio = oferta.get('mes_inicio', '')
+        mes_fin = oferta.get('mes_fin', '')
+        pct = Decimal(str(oferta.get('descuento_plan') or 0))
+        if pct > 0 and mes_inicio and mes_fin:
+            if mes_inicio <= mes_str <= mes_fin:
+                return pct
+            return Decimal('0')
+
+    descuentos = control.get('descuentos', {})
+    if isinstance(descuentos, dict):
+        plan_desc = descuentos.get('plan', {})
+        if isinstance(plan_desc, dict):
+            pct = Decimal(str(plan_desc.get('porcentaje') or 0))
+            if pct > 0:
+                fecha_fin = plan_desc.get('fecha_fin')
+                if fecha_fin:
+                    mes_fin_leg = fecha_fin[:7]  # 'YYYY-MM'
+                    if mes_str <= mes_fin_leg:
+                        return pct
+                    return Decimal('0')
+                return pct
+
+    perm = Decimal(str(control.get('descuento_permanente') or 0))
+    return perm
+
 def obtener_ultimo_dia_mes(fecha):
     ultimo_dia = calendar.monthrange(fecha.year, fecha.month)[1]
     return date(fecha.year, fecha.month, ultimo_dia)
+
+
+def sistema_costo_mensual_real(servicio, mes_str=None):
+    """
+    Calcula el costo mensual REAL del servicio considerando:
+      - Precio base del plan
+      - Anexos cobrables (numero_anexos - anexos_gratis del plan)
+      - Descuento por período (oferta aprobada mes_inicio/mes_fin)
+
+    Retorna dict con desglose completo.
+    """
+    if mes_str is None:
+        mes_str = date.today().strftime('%Y-%m')
+
+    plan = getattr(servicio, 'plan', None)
+    costo_base = Decimal(str(plan.costo_mensual)) if plan else Decimal('0')
+
+    # Anexos
+    num_anexos = int(getattr(servicio, 'numero_anexos', None) or 0)
+    anexos_gratis = int(getattr(plan, 'anexos_gratis', None) or 1) if plan else 1
+    precio_por_anexo = Decimal(str(getattr(plan, 'precio_por_anexo', None) or 0)) if plan else Decimal('0')
+    anexos_cobrables = max(0, num_anexos - anexos_gratis)
+    costo_anexos = (Decimal(str(anexos_cobrables)) * precio_por_anexo).quantize(Decimal('0.01'))
+    subtotal = (costo_base + costo_anexos).quantize(Decimal('0.01'))
+
+    # Descuento por período
+    control = servicio.control_operativo_json if isinstance(servicio.control_operativo_json, dict) else {}
+    pct_descuento = _descuento_plan_para_mes(control, mes_str)
+    descuento_monto = (subtotal * pct_descuento / Decimal('100')).quantize(Decimal('0.01')) if pct_descuento else Decimal('0')
+    costo_final = max(Decimal('0'), subtotal - descuento_monto)
+
+    # Descripción del período de oferta
+    oferta = control.get('oferta', {})
+    periodo_desc = oferta.get('periodo_descripcion', '') if isinstance(oferta, dict) else ''
+    mes_inicio = oferta.get('mes_inicio', '') if isinstance(oferta, dict) else ''
+    mes_fin = oferta.get('mes_fin', '') if isinstance(oferta, dict) else ''
+    descuento_plan = oferta.get('descuento_plan', 0) if isinstance(oferta, dict) else 0
+    estado_oferta = oferta.get('estado', '') if isinstance(oferta, dict) else ''
+
+    return {
+        'costo_base': costo_base,
+        'num_anexos': num_anexos,
+        'anexos_gratis': anexos_gratis,
+        'anexos_cobrables': anexos_cobrables,
+        'precio_por_anexo': precio_por_anexo,
+        'costo_anexos': costo_anexos,
+        'subtotal_sin_descuento': subtotal,
+        'pct_descuento': pct_descuento,
+        'descuento_monto': descuento_monto,
+        'costo_final': costo_final,
+        'periodo_descripcion': periodo_desc,
+        'mes_inicio': mes_inicio,
+        'mes_fin': mes_fin,
+        'descuento_plan': descuento_plan,
+        'estado_oferta': estado_oferta,
+    }
 
 @transaction.atomic
 def sistema_procesar_facturacion_mensual(fecha_ref=None):
@@ -88,31 +186,44 @@ def sistema_procesar_facturacion_mensual(fecha_ref=None):
                     if rs:
                         ruc_emisor_id = rs.ruc_id
 
-                # Producir cargo de mensualidad del plan
-                costo_plan = Decimal(str(sub.plan.costo_plan)) if sub.plan_id else Decimal('0.00')
-                if costo_plan > 0:
+                # Producir cargo de mensualidad del plan usando el costo mensual REAL
+                desglose = sistema_costo_mensual_real(sub, mes_str)
+                costo_cargo = desglose['costo_final']
+                pct_desc = desglose['pct_descuento']
+                costo_base = desglose['costo_base']
+                anexos_cobrables = desglose['anexos_cobrables']
+
+                if costo_cargo > 0:
                     cliente = sub.cliente
                     tipo_doc = 'boleta'
                     if cliente and cliente.ruc and len(str(cliente.ruc).strip()) == 11:
                         tipo_doc = 'factura'
+
+                    # Armar descripción detallada
+                    desc_parts = [f"Mensualidad de Plan {sub.plan.nombre_plan} - Periodo {mes_str}"]
+                    if anexos_cobrables > 0:
+                        desc_parts.append(f"+{anexos_cobrables} anexo(s) adicional(es)")
+                    if pct_desc > 0:
+                        desc_parts.append(f"Descuento {pct_desc}%")
+                    descripcion_cargo = ' | '.join(desc_parts)
 
                     cargo_plan = FacturacionPagos.objects.create(
                         servicio=sub,
                         ruc_emisor_id=ruc_emisor_id,
                         tipo_documento=tipo_doc,
                         tipo_transaccion='cargo',
-                        monto=costo_plan,
-                        descripcion=f"Mensualidad de Plan {sub.plan.nombre_plan} - Periodo {mes_str}",
+                        monto=costo_cargo,
+                        descripcion=descripcion_cargo,
                         fecha_transaccion=timezone.now(),
                         fecha_vencimiento=due_date,
                         fecha_creacion=timezone.now(),
                         cuota_mensual_indexada=True
                     )
                     cargos_generados += 1
-                    
+
                     if sub.deuda_acumulada is None:
                         sub.deuda_acumulada = Decimal('0')
-                    sub.deuda_acumulada += costo_plan
+                    sub.deuda_acumulada += costo_cargo
 
                 # Verificar si tiene deuda financiada (cuotas pendientes)
                 financiamiento = control.get('plan_financiamiento')

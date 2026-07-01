@@ -1,7 +1,13 @@
+import json
+import os
+import re
+import unicodedata
 import uuid
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
+from django.conf import settings
 from django.db import connection, transaction
 from django.utils import timezone
 
@@ -16,6 +22,35 @@ def _decimal(value, default='0'):
         return Decimal(str(value))
     except (InvalidOperation, TypeError):
         return Decimal(default)
+
+
+def _nombre_normalizado(nombre_apellidos, razon_social):
+    """
+    Convierte el nombre del cliente a un slug sin tildes ni espacios.
+    Ej: 'Juan Pérez García' → 'juanperezgarcia'
+    """
+    texto = (razon_social or nombre_apellidos or 'cliente').strip()
+    # Normalizar unicode → quitar tildes
+    nfkd = unicodedata.normalize('NFKD', texto)
+    solo_ascii = nfkd.encode('ascii', 'ignore').decode('ascii')
+    # Dejar solo letras y números
+    limpio = re.sub(r'[^a-zA-Z0-9]', '', solo_ascii).lower()
+    return limpio or 'cliente'
+
+
+def _crear_carpetas_cliente(codigo_cliente, codigo_servicio, datos_json, nombre_slug):
+    """
+    Crea la estructura de directorios del cliente y escribe su JSON de perfil.
+      media/clientes/<codigo_cliente>/<codigo_servicio>/<nombre_slug>.json
+    """
+    try:
+        base = Path(settings.MEDIA_ROOT) / 'clientes' / str(codigo_cliente) / str(codigo_servicio)
+        base.mkdir(parents=True, exist_ok=True)
+        ruta_json = base / f"{nombre_slug}.json"
+        with open(ruta_json, 'w', encoding='utf-8') as f:
+            json.dump(datos_json, f, ensure_ascii=False, indent=2, default=str)
+    except Exception:
+        pass  # No interrumpir el registro si falla la creación de archivos
 
 
 def _parse_fecha(value):
@@ -359,6 +394,32 @@ def sistema_registro_cliente(datos):
         suscripcion.refresh_from_db()
         suscripcion.codigo = obtener_codigo_servicio_actualizado(suscripcion)
         suscripcion.save(update_fields=['codigo'])
+
+        # ── Crear carpeta y JSON del cliente ────────────────────────────────
+        nombre_slug = _nombre_normalizado(
+            datos.get('nombre_apellidos'),
+            datos.get('razon_social')
+        )
+        codigo_cliente_str = suscripcion.cliente.id_cliente_codigo if hasattr(suscripcion.cliente, 'id_cliente_codigo') else str(client_id)
+        perfil_json = {
+            'codigo_cliente': codigo_cliente_str,
+            'codigo_servicio': suscripcion.codigo,
+            'nombre_apellidos': datos.get('nombre_apellidos'),
+            'razon_social': datos.get('razon_social'),
+            'dni': datos.get('dni'),
+            'ruc': datos.get('ruc'),
+            'celular_1': datos.get('celular_1'),
+            'celular_2': datos.get('celular_2'),
+            'correo': datos.get('correo'),
+            'direccion_fiscal': datos.get('direccion_fiscal'),
+            'direccion_servicio': direccion,
+            'plan': plan.nombre_plan if plan else None,
+            'suministro': suministro_num,
+            'fecha_registro': date.today().isoformat(),
+            'oferta': control_json.get('descuentos', {}),
+        }
+        _crear_carpetas_cliente(codigo_cliente_str, suscripcion.codigo, perfil_json, nombre_slug)
+        # ────────────────────────────────────────────────────────────────────
 
         ticket_id = None
         app_tickets = []  # Store app installation tickets separately

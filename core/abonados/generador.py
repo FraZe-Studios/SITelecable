@@ -4,7 +4,7 @@ Utilidades para generar codigos unicos para clientes, servicios, tickets y perso
 
 Sistema de codificacion:
 - Codigo de cliente: A00000001 (sin sector) o PREFIJO-A00000001 (con sector)
-- Codigo de servicio: S1-PREFIJO-A00000001
+- Codigo de servicio: S1-PREFIJO-A00000001, S2-PREFIJO-A00000001 (donde A00000001 es el codigo del cliente)
 - Codigo de ticket: prefijo + A00000001 (ej: INS000001)
 - Codigo de personal: SATC000001, ATC000001, TAC000001, VEN000001, etc.
 """
@@ -60,22 +60,28 @@ def generar_codigo_cliente(abonado_id, sector_prefijo=None):
     return f"A{id_str}"
 
 
-def generar_codigo_servicio(suscripcion_id, sector_prefijo=None):
+def generar_codigo_servicio(suscripcion, numero_servicio=1):
     """
     Genera el codigo de servicio segun el formato especificado.
 
     Args:
-        suscripcion_id: ID de la suscripcion
-        sector_prefijo: Prefijo del sector (opcional)
+        suscripcion: Objeto de suscripcion
+        numero_servicio: Numero de servicio del cliente (1, 2, 3, etc.)
 
     Returns:
-        Codigo del servicio en formato S1-PREFIJO-A00000001
+        Codigo del servicio en formato S1-PREFIJO-A00000001, S2-PREFIJO-A00000001, etc.
     """
-    id_str = str(suscripcion_id).zfill(8)
+    # Obtener el codigo del cliente
+    abonado = suscripcion.abonado
+    cliente_id_str = str(abonado.id).zfill(8)
+    codigo_cliente = f"A{cliente_id_str}"
 
-    if sector_prefijo:
-        return f"S1-{sector_prefijo.upper()}-A{id_str}"
-    return f"S1-A-{id_str}"
+    # Obtener el prefijo del sector
+    sector = resolver_sector_servicio(suscripcion)
+    sector_prefijo = sector.prefijo_comercial.upper() if sector else 'CEN'
+
+    # Formato: S1-OR01-A00000001, S2-OR01-A00000001, etc.
+    return f"S{numero_servicio}-{sector_prefijo}-{codigo_cliente}"
 
 
 def generar_codigo_ticket(ticket_id, tipo_ticket):
@@ -146,12 +152,18 @@ def obtener_codigo_cliente_actualizado(abonado):
 
 def obtener_codigo_servicio_actualizado(suscripcion):
     """
-    Obtiene el codigo de servicio actualizado segun el sector real del servicio.
+    Obtiene el codigo de servicio actualizado segun el sistema de codificacion.
     """
-    sector = resolver_sector_servicio(suscripcion)
-    sector_prefijo = sector.prefijo_comercial if sector else None
+    # Determinar el numero de servicio basado en el orden de servicios del cliente
+    abonado = suscripcion.abonado
+    servicios_cliente = abonado.suscripciones.filter(activo=True).order_by('id')
+    numero_servicio = 1
+    for idx, serv in enumerate(servicios_cliente):
+        if serv.id == suscripcion.id:
+            numero_servicio = idx + 1
+            break
 
-    return generar_codigo_servicio(suscripcion.id, sector_prefijo)
+    return generar_codigo_servicio(suscripcion, numero_servicio)
 
 
 def obtener_codigo_ticket_actualizado(ticket):

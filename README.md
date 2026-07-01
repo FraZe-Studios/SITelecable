@@ -14,6 +14,8 @@ La arquitectura lógica de la infraestructura sigue una jerarquía estricta y re
 - Gestión de abonados y clientes con geolocalización
 - Sistema de organización por sedes y sectores
 - Gestión de caja y facturación
+- Sistema de pagos y descuentos de clientes
+- Renovación de planes y servicios
 - Calendario de tareas y visitas
 - Consulta de RUC/DNI con cache optimizado
 - Sistema de archivos comprimidos para optimización de almacenamiento

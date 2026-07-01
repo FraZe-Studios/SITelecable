@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
 from datetime import date, timedelta
+from calendar import monthrange
 from core.abonados.evaluacion import _decimal
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -13,6 +14,32 @@ from core.abonados.evaluacion import sistema_evaluar_registro
 from core.abonados.registro import sistema_registro_cliente
 from core.abonados.pagos import sistema_registrar_pago_cliente
 from core.auth.comun import senderror
+
+_MESES_ES = [
+    '', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+]
+
+
+def _calcular_mes_fin(mes_inicio_date, meses_descuento):
+    """Retorna la fecha del último día del mes de fin del período."""
+    anio = mes_inicio_date.year
+    mes = mes_inicio_date.month + meses_descuento - 1
+    anio += (mes - 1) // 12
+    mes = (mes - 1) % 12 + 1
+    return f"{anio:04d}-{mes:02d}"
+
+
+def _descripcion_periodo(mes_inicio_str, mes_fin_str):
+    """Ej: '2026-07' → '2026-12' → 'Desde julio hasta diciembre 2026'."""
+    try:
+        yi, mi = int(mes_inicio_str[:4]), int(mes_inicio_str[5:7])
+        yf, mf = int(mes_fin_str[:4]), int(mes_fin_str[5:7])
+        inicio_txt = _MESES_ES[mi]
+        fin_txt = f"{_MESES_ES[mf]} {yf}"
+        return f"Desde {inicio_txt} hasta {fin_txt}"
+    except Exception:
+        return f"{mes_inicio_str} → {mes_fin_str}"
 
 @csrf_exempt
 @require_POST
@@ -155,13 +182,22 @@ def registrar(request):
             if not isinstance(servicio.control_operativo_json, dict):
                 servicio.control_operativo_json = {}
             
+            # Calcular período del descuento por meses calendario
+            hoy = date.today()
+            mes_inicio_str = hoy.strftime('%Y-%m')
+            meses_desc = int(body.get('meses_descuento') or 0)
+            mes_fin_str = _calcular_mes_fin(hoy, meses_desc) if meses_desc > 0 else mes_inicio_str
+            
             # Guardar detalles de la oferta para aprobación
             servicio.control_operativo_json['oferta'] = {
                     'estado': 'pendiente_aprobacion',
                     'plan_id': body.get('plan_id'),
                     'plan_nombre': body.get('plan_nombre'),
                     'descuento_plan': float(body.get('descuento_plan') or body.get('pct_descuento_plan') or 0),
-                    'meses_descuento': int(body.get('meses_descuento') or 0),
+                    'meses_descuento': meses_desc,
+                    'mes_inicio': mes_inicio_str,
+                    'mes_fin': mes_fin_str,
+                    'periodo_descripcion': _descripcion_periodo(mes_inicio_str, mes_fin_str) if meses_desc > 0 else '',
                     'descuento_apps': float(body.get('pct_descuento_apps') or 0),
                     'meses_descuento_apps': int(body.get('meses_descuento_apps') or 0),
                     'monto_instalacion': float(body.get('monto_instalacion') or 0),

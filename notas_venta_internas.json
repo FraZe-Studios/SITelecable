@@ -1,0 +1,9 @@
+[
+    {
+        "id": 1,
+        "cliente_id": 1,
+        "monto_total": 44.5,
+        "fecha_registro": "2026-07-01T22:54:31.515608+00:00",
+        "state": "PENDIENTE_CONVERSION"
+    }
+]

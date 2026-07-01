@@ -90,6 +90,118 @@ class SITAlertManager {
             }, 400);
         }
     }
+
+    /**
+     * Muestra un cuadro de confirmación estético y asíncrono.
+     * Retorna una Promesa que resuelve a true (Confirmar) o false (Cancelar).
+     * @param {string} message - Mensaje a mostrar.
+     * @returns {Promise<boolean>}
+     */
+    confirm(message) {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'confirm-overlay';
+            overlay.innerHTML = `
+                <div class="confirm-modal">
+                    <div class="confirm-content">${message}</div>
+                    <div class="confirm-actions">
+                        <button type="button" class="confirm-btn confirm-btn-cancel">Cancelar</button>
+                        <button type="button" class="confirm-btn confirm-btn-ok">Confirmar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const cancelBtn = overlay.querySelector('.confirm-btn-cancel');
+            const okBtn = overlay.querySelector('.confirm-btn-ok');
+
+            const cleanup = (value) => {
+                overlay.classList.add('confirm-fade-out');
+                overlay.addEventListener('animationend', () => {
+                    overlay.remove();
+                });
+                // Failsafe por si no dispara animationend
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.remove();
+                    }
+                }, 300);
+                resolve(value);
+            };
+
+            cancelBtn.addEventListener('click', () => cleanup(false));
+            okBtn.addEventListener('click', () => cleanup(true));
+            
+            // Cerrar al dar click fuera del modal
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    cleanup(false);
+                }
+            });
+        });
+    }
+
+    /**
+     * Muestra un cuadro de entrada estético y asíncrono.
+     * Retorna una Promesa que resuelve a la cadena ingresada o null si se cancela.
+     * @param {string} message - Mensaje a mostrar.
+     * @param {string} defaultValue - Valor por defecto de la entrada.
+     * @returns {Promise<string|null>}
+     */
+    prompt(message, defaultValue = '') {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'confirm-overlay';
+            overlay.innerHTML = `
+                <div class="confirm-modal">
+                    <div class="confirm-content">${message}</div>
+                    <div style="margin: 0.75rem 0;">
+                        <input type="text" class="confirm-input" value="${defaultValue}" style="width: 100%; box-sizing: border-box; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary);">
+                    </div>
+                    <div class="confirm-actions">
+                        <button type="button" class="confirm-btn confirm-btn-cancel">Cancelar</button>
+                        <button type="button" class="confirm-btn confirm-btn-ok">Aceptar</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            const input = overlay.querySelector('.confirm-input');
+            const cancelBtn = overlay.querySelector('.confirm-btn-cancel');
+            const okBtn = overlay.querySelector('.confirm-btn-ok');
+
+            input.focus();
+            input.select();
+
+            const cleanup = (value) => {
+                overlay.classList.add('confirm-fade-out');
+                overlay.addEventListener('animationend', () => {
+                    overlay.remove();
+                });
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.remove();
+                    }
+                }, 300);
+                resolve(value);
+            };
+
+            cancelBtn.addEventListener('click', () => cleanup(null));
+            okBtn.addEventListener('click', () => cleanup(input.value));
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    cleanup(input.value);
+                } else if (e.key === 'Escape') {
+                    cleanup(null);
+                }
+            });
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    cleanup(null);
+                }
+            });
+        });
+    }
 }
 
 // Inicializar de forma global

@@ -179,7 +179,6 @@
 
 {% include "cliente/components/modal_registro.html" %}
 
-<!-- Modal Ticket Masivo Planta Externa -->
 <div class="ab-modal-overlay" id="modalTicketPlanta" aria-hidden="true">
     <div class="ab-modal" role="dialog" aria-labelledby="modalTicketPlantaTitle" style="max-width: 550px;">
         <div class="ab-modal-header">
@@ -271,8 +270,14 @@
 </div>
 
 <script src="{% static 'global/js/theme_controller.js' %}"></script>
+<script src="{% static 'global/js/alerts.js' %}"></script>
 <script src="{% static 'js/organizacion/image-compressor.js' %}"></script>
-<script src="{% static 'js/abonados/abonados-registro.js' %}"></script>
-<script src="{% static 'js/abonados/abonados-main.js' %}"></script>
+<script src="{% static 'js/abonados/registro/main.js' %}"></script>
+<script src="{% static 'js/abonados/registro/documento.js' %}"></script>
+<script src="{% static 'js/abonados/registro/cliente.js' %}"></script>
+<script src="{% static 'js/abonados/registro/suministro.js' %}"></script>
+<script src="{% static 'js/abonados/registro/evaluacion.js' %}"></script>
+<script src="{% static 'js/abonados/registro/pago.js' %}"></script>
+<script src="{% static 'js/abonados/abonados.js' %}"></script>
 </body>
 </html>

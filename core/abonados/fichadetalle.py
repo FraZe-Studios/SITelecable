@@ -570,10 +570,35 @@ def sistema_detalle_ficha_cliente(cliente, suscripciones, cargo_usuario=''):
         
         # Check if there's a pending offer approval
         oferta_pendiente = False
+        oferta_periodo = None
         if isinstance(sub.control_operativo_json, dict):
             oferta = sub.control_operativo_json.get('oferta', {})
             if oferta.get('estado') == 'pendiente_aprobacion':
                 oferta_pendiente = True
+            elif oferta.get('estado') == 'aprobada':
+                from datetime import date as _date
+                mes_actual = _date.today().strftime('%Y-%m')
+                mes_inicio = oferta.get('mes_inicio', '')
+                mes_fin = oferta.get('mes_fin', '')
+                pct = oferta.get('descuento_plan') or 0
+                if pct and mes_inicio and mes_fin and mes_inicio <= mes_actual <= mes_fin:
+                    oferta_periodo = {
+                        'activa': True,
+                        'descuento_plan': pct,
+                        'mes_inicio': mes_inicio,
+                        'mes_fin': mes_fin,
+                        'periodo_descripcion': oferta.get('periodo_descripcion') or f"{mes_inicio} → {mes_fin}",
+                        'notas': oferta.get('notas_beneficios') or '',
+                    }
+                elif pct and mes_fin and mes_actual > mes_fin:
+                    oferta_periodo = {
+                        'activa': False,
+                        'descuento_plan': pct,
+                        'mes_inicio': mes_inicio,
+                        'mes_fin': mes_fin,
+                        'periodo_descripcion': oferta.get('periodo_descripcion') or f"{mes_inicio} → {mes_fin}",
+                        'notas': oferta.get('notas_beneficios') or '',
+                    }
 
         from core.abonados.contextovendedor import sistema_planes_por_sede
         planes_sede = sistema_planes_por_sede(sede_id) if sede_id else []
@@ -582,6 +607,12 @@ def sistema_detalle_ficha_cliente(cliente, suscripciones, cargo_usuario=''):
         # Obtener beneficios activos del servicio
         from core.abonados.pagos import sistema_obtener_beneficios_activos
         beneficios_activos = sistema_obtener_beneficios_activos(sub.id)
+
+        # Calcular costo mensual REAL (base + anexos cobrables - descuento período)
+        from core.abonados.facturacion import sistema_costo_mensual_real
+        costo_desglose = sistema_costo_mensual_real(sub)
+        # Serializable para JSON
+        costo_desglose_json = {k: float(v) if hasattr(v, 'as_integer_ratio') else v for k, v in costo_desglose.items()}
 
         detalles.append({
             'obj': sub,
@@ -596,6 +627,8 @@ def sistema_detalle_ficha_cliente(cliente, suscripciones, cargo_usuario=''):
             'serie_equipo': sub.router_serie or '—',
             'mac_equipo': sub.router_mac or '—',
             'tickets': tickets,
+            'oferta_pendiente': oferta_pendiente,
+            'oferta_periodo': oferta_periodo,
             'tickets_tac': [
                 t for t in tickets
                 if 'externa' not in (t.get('area') or '').lower() and (t.get('modalidad') or '').lower() not in ('campo', 'presencial')
@@ -604,9 +637,10 @@ def sistema_detalle_ficha_cliente(cliente, suscripciones, cargo_usuario=''):
                 t for t in tickets
                 if 'externa' in (t.get('area') or '').lower() or (t.get('modalidad') or '').lower() in ('campo', 'presencial')
             ],
-            'total_mensual': 0.0 if (tiene_servicio_activo and sub.plan_id and sub.plan.tipo_servicio.lower() == 'app' and sub.estado_servicio.lower() == 'activo' and not app_bonificada_encontrada) else (float(sub.plan.costo_plan) if sub.plan_id else 0),
+            'total_mensual': float(costo_desglose['costo_final']) if sub.plan_id else 0.0,
+            'costo_mensual_desglose': costo_desglose_json,
+            'costo_mensual_desglose_json': json.dumps(costo_desglose_json),
             'admite_compromiso': bool(getattr(sub.plan, 'admite_compromiso_pago', True)) if sub.plan_id else False,
-            'oferta_pendiente': oferta_pendiente,
             'beneficios_activos': beneficios_activos,
             'rucs_emision': sistema_rucs_emision_sede(sede_id),
             'contrato_plantilla': _contrato_plantilla_sede(sede_id),

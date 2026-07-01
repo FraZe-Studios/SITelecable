@@ -46,16 +46,24 @@ def _sanear_material_mac(mac_str):
     if mac_str == '' or mac_str.lower() in ('null', 'none', '-', '—'):
         return None
     import re
+    # Aceptar formato estándar con separadores (AA:BB:CC:DD:EE:FF o AA-BB-CC-DD-EE-FF)
     if re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', mac_str):
-        return mac_str
-    # Intenta formatear si es un string continuo de 12 caracteres (ej: AABBCCDDEEFF -> AA:BB:CC:DD:EE:FF)
+        return mac_str.upper()
+    # Intenta formatear si es un string continuo de caracteres hexadecimales
     limpio = re.sub(r'[^0-9A-Fa-f]', '', mac_str)
-    if len(limpio) == 12:
+    # Si tiene caracteres hexadecimales válidos
+    if len(limpio) > 0:
+        # Si tiene menos de 12 caracteres, completar con ceros a la izquierda
+        if len(limpio) < 12:
+            limpio = limpio.zfill(12)
+        # Si tiene más de 12 caracteres, tomar los primeros 12
+        elif len(limpio) > 12:
+            limpio = limpio[:12]
+        # Formatear con separadores
         formatted = ":".join(limpio[i:i+2] for i in range(0, 12, 2))
-        if re.match(r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$', formatted):
-            return formatted
-    # Si no tiene el formato estándar de 12 dígitos, permitimos la cadena original
-    return mac_str
+        return formatted.upper()
+    # Si no tiene caracteres hexadecimales, devolver el valor original truncado
+    return mac_str[:17] if len(mac_str) > 17 else mac_str
 
 
 @transaction.atomic
@@ -114,8 +122,9 @@ def sistema_liquidar_ticket(datos):
             }
             materiales.append(linea)
             total_materiales += Decimal(str(linea['subtotal']))
-        if not materiales:
-            raise ValueError('Debe registrar al menos un material')
+        # Materiales ya no son obligatorios - se puede liquidar solo con actualización técnica
+        # if not materiales:
+        #     raise ValueError('Debe registrar al menos un material')
 
     # Obtener la suscripción asociada y ejecutar automatización por trigger de liquidación (motor centralizado)
     sub = ticket.suscripcion
@@ -273,16 +282,37 @@ def sistema_liquidar_ticket(datos):
         # Actualizar suscripción / servicio unificado
         nap_id_val = datos.get('nap_id')
         if nap_id_val and str(nap_id_val).strip() not in ('', 'None', 'null'):
-            sub.caja_nap_id = int(nap_id_val)
-        if datos.get('puerto_nap'):
-            sub.puerto_nap = datos.get('puerto_nap')
+            try:
+                sub.caja_nap_id = int(nap_id_val)
+            except (ValueError, TypeError):
+                pass
+        puerto_nap_val = datos.get('puerto_nap')
+        if puerto_nap_val and str(puerto_nap_val).strip() not in ('', 'None', 'null'):
+            try:
+                sub.puerto_nap = int(puerto_nap_val)
+            except (ValueError, TypeError):
+                pass
         if datos.get('presinto_numero'):
             sub.presinto_numero = datos.get('presinto_numero')
         if datos.get('hub_borne_referencia'):
             sub.hub_borne_referencia = datos.get('hub_borne_referencia')
-        num_anexos = datos.get('numero_anexos')
-        if num_anexos is not None and str(num_anexos).strip() not in ('', 'None', 'null'):
-            sub.numero_anexos = int(num_anexos)
+        
+        # Manejo automático de anexos para tickets de instalación/corte de anexo
+        ticket_nombre_lower = ticket.nombre_ticket.lower() if ticket.nombre_ticket else ''
+        if 'instalacion de anexo' in ticket_nombre_lower or 'instalación de anexo' in ticket_nombre_lower:
+            # Incrementar automáticamente el número de anexos
+            sub.numero_anexos = (sub.numero_anexos or 0) + 1
+        elif 'corte de anexo' in ticket_nombre_lower:
+            # Decrementar automáticamente el número de anexos (mínimo 0)
+            sub.numero_anexos = max(0, (sub.numero_anexos or 0) - 1)
+        else:
+            # Para otros tickets, usar el valor del formulario si se proporciona
+            num_anexos = datos.get('numero_anexos')
+            if num_anexos is not None and str(num_anexos).strip() not in ('', 'None', 'null'):
+                try:
+                    sub.numero_anexos = int(num_anexos)
+                except (ValueError, TypeError):
+                    pass
         is_new_installation = not sub.fecha_instalacion or (ticket.categoria == 'instalacion')
         if is_new_installation:
             fecha_inst = timezone.localdate()

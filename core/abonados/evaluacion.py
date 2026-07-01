@@ -169,9 +169,9 @@ def sistema_evaluar_registro(datos, ctx_vendedor):
             es_inst_json = t.funciones_especiales and t.funciones_especiales.get('instalacion', {}).get('activado')
             logging.info(f"Revisando ticket: {t.nombre_ticket} ({t.categoria}), es_instalacion(prop): {es_inst_prop}, es_instalacion(json): {es_inst_json}, precio: {t.precio_base}")
             if es_inst_prop or es_inst_json:
-                # Verificar que NO sea un ticket de anexo (para evitar confusión)
+                # Verificar que NO sea un ticket de anexo y sea de la categoría 'instalacion' (para evitar confusión con traslados)
                 es_anexo = t.instalacion_anexo or (t.funciones_especiales and t.funciones_especiales.get('instalacion_anexo', {}).get('activado'))
-                if not es_anexo:
+                if not es_anexo and t.categoria == 'instalacion':
                     inst_ticket = t
                     logging.info(f"Ticket de instalación encontrado (NO anexo): {t.nombre_ticket}, precio: {t.precio_base}")
                     break

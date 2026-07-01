@@ -244,6 +244,10 @@ def _aplicar_descuento_activo(servicio, monto_base, concepto):
     if not servicio or not isinstance(servicio.control_operativo_json, dict):
         return monto_base, Decimal('0'), None
     
+    concept_lower = (concepto or '').lower()
+    if 'adelanto' in concept_lower or 'meses' in concept_lower or 'anexo' in concept_lower:
+        return monto_base, Decimal('0'), None
+    
     control = servicio.control_operativo_json
     oferta = control.get('oferta', {})
     beneficios = control.get('beneficios', {})
@@ -251,26 +255,45 @@ def _aplicar_descuento_activo(servicio, monto_base, concepto):
     descuento_total = Decimal('0')
     info_descuento = None
     
-    # Verificar descuento de oferta pendiente aprobada
+    # Verificar descuento de oferta aprobada — comparación por mes calendario
     if oferta and oferta.get('estado') == 'aprobada':
         descuento_pct = _decimal(oferta.get('descuento_plan') or 0)
-        meses_descuento = int(oferta.get('meses_descuento') or 0)
-        
-        if descuento_pct > 0 and meses_descuento > 0:
-            meses_usados = int(oferta.get('meses_descuento_usados') or 0)
-            if meses_usados < meses_descuento:
-                # Aplicar descuento
+        mes_inicio = oferta.get('mes_inicio', '')
+        mes_fin = oferta.get('mes_fin', '')
+
+        # Fallback: si no tiene mes_inicio/mes_fin, usar meses_descuento_usados (legado)
+        if descuento_pct > 0 and mes_inicio and mes_fin:
+            mes_actual = date.today().strftime('%Y-%m')
+            if mes_inicio <= mes_actual <= mes_fin:
                 descuento_monto = monto_base * (descuento_pct / Decimal('100'))
                 descuento_total += descuento_monto
-                
+                meses_restantes = 0
+                try:
+                    yi, mi = int(mes_fin[:4]), int(mes_fin[5:7])
+                    ya, ma = int(mes_actual[:4]), int(mes_actual[5:7])
+                    meses_restantes = max(0, (yi * 12 + mi) - (ya * 12 + ma))
+                except Exception:
+                    pass
                 info_descuento = {
                     'tipo': 'oferta',
                     'porcentaje': float(descuento_pct),
                     'monto': float(descuento_monto),
-                    'mes_restante': meses_descuento - meses_usados - 1
+                    'mes_restante': meses_restantes,
+                    'periodo': f"{mes_inicio} → {mes_fin}",
                 }
-                
-                # Actualizar meses usados
+        elif descuento_pct > 0:
+            # Modo legado: contar meses usados
+            meses_descuento = int(oferta.get('meses_descuento') or 0)
+            meses_usados = int(oferta.get('meses_descuento_usados') or 0)
+            if meses_descuento > 0 and meses_usados < meses_descuento:
+                descuento_monto = monto_base * (descuento_pct / Decimal('100'))
+                descuento_total += descuento_monto
+                info_descuento = {
+                    'tipo': 'oferta',
+                    'porcentaje': float(descuento_pct),
+                    'monto': float(descuento_monto),
+                    'mes_restante': meses_descuento - meses_usados - 1,
+                }
                 oferta['meses_descuento_usados'] = meses_usados + 1
                 servicio.control_operativo_json['oferta'] = oferta
                 servicio.save(update_fields=['control_operativo_json'])
@@ -400,7 +423,7 @@ def sistema_registrar_pago_cliente(datos):
     descuento_aplicado = Decimal('0')
     info_descuento = None
     
-    if es_plan_pago:
+    if es_plan_pago and not deuda_id:
         monto_con_descuento, descuento_aplicado, info_descuento = _aplicar_descuento_activo(servicio, monto_total, concepto)
         if descuento_aplicado > 0:
             # Actualizar el monto a cobrar con el descuento aplicado
@@ -577,7 +600,7 @@ def sistema_registrar_multipago_cliente(datos):
         descuento_aplicado = Decimal('0')
         info_descuento = None
         
-        if es_plan_pago:
+        if es_plan_pago and deuda_id == 0:
             monto_pago_con_descuento, descuento_aplicado, info_descuento = _aplicar_descuento_activo(servicio, monto_pago, concepto_cargo)
             if descuento_aplicado > 0:
                 # Actualizar el monto a cobrar con el descuento aplicado

@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('AbonadosRegistro:', window.AbonadosRegistro);
         if (!window.AbonadosRegistro) {
             console.error('AbonadosRegistro no está definido');
-            alert('Error: El sistema de registro no está cargado. Recargue la página.');
+            SITAlert.show('El sistema de registro no está cargado. Recargue la página.', 'danger');
             return;
         }
         window.AbonadosRegistro.open({});
@@ -275,15 +275,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Extra client-side validation
         if (payload.tipo_elemento === 'NAP' && !payload.elemento_id) {
-            alert('Debe seleccionar la Caja NAP afectada.');
+            SITAlert.show('Debe seleccionar la Caja NAP afectada.', 'warning');
             return;
         }
         if (payload.tipo_elemento === 'MUFA' && !payload.elemento_id) {
-            alert('Debe seleccionar la Mufa afectada.');
+            SITAlert.show('Debe seleccionar la Mufa afectada.', 'warning');
             return;
         }
         if (payload.tipo_elemento === 'GENERAL' && !payload.referencia_ubicacion.trim()) {
-            alert('Debe ingresar la referencia de ubicación.');
+            SITAlert.show('Debe ingresar la referencia de ubicación.', 'warning');
             return;
         }
 
@@ -305,15 +305,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const json = await res.json();
             if (json.status === 'success') {
-                alert(json.data.mensaje || 'Tickets generados exitosamente.');
+                SITAlert.show(json.data.mensaje || 'Tickets generados exitosamente.', 'success');
                 closeModal();
                 window.location.reload();
             } else {
-                alert(json.message || 'Ocurrió un error al generar los tickets masivos.');
+                SITAlert.show(json.message || 'Ocurrió un error al generar los tickets masivos.', 'danger');
             }
         } catch (err) {
             console.error('Error submitting massive ticket:', err);
-            alert('Error de red al comunicarse con el servidor.');
+            SITAlert.show('Error de red al comunicarse con el servidor.', 'danger');
         } finally {
             const btnSubmit = document.getElementById('btnEnviarTicketPlanta');
             if (btnSubmit) {
